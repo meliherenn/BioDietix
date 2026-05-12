@@ -1,7 +1,6 @@
 import re
 import numpy as np
 import pandas as pd
-import pdfplumber
 
 
 # =========================================================
@@ -30,6 +29,14 @@ def clean_value(value):
 
 
 def extract_pdf_text(pdf_path):
+    try:
+        import pdfplumber
+    except ImportError as exc:
+        raise ImportError(
+            "PDF analysis requires pdfplumber. Install dependencies with: "
+            "pip install -r requirements.txt"
+        ) from exc
+
     text = ""
 
     with pdfplumber.open(pdf_path) as pdf:
@@ -540,10 +547,10 @@ def generate_recommendations(row):
 
     if "Thyroid / Metabolism Indicator" in row["Health_Profile"]:
         recommendations.append(
-            "Support thyroid-related metabolism with balanced meals, adequate protein, selenium, zinc, iodine, and regular meal patterns."
+            "Thyroid-related lab changes should be reviewed with a healthcare professional; this is not a medical diagnosis. Support thyroid-related metabolism with balanced meals, adequate protein, selenium, zinc, iodine, and regular meal patterns."
         )
         increase_foods.extend(["eggs", "fish", "yogurt", "dairy products", "selenium-rich foods", "balanced meals"])
-        limit_foods.extend(["very low-calorie diets", "meal skipping", "ultra-processed foods"])
+        limit_foods.extend(["very low-calorie diets", "meal skipping", "ultra-processed foods", "excess sugar"])
 
     if "Diet Quality Risk" in row["Health_Profile"]:
         recommendations.append(
@@ -726,9 +733,24 @@ def main():
     except FileNotFoundError:
         print("\nPDF file not found. Dataset recommendation files were created only.")
 
-result = pd.read_csv("Patient_PDF_Recommendation_Result.csv")
-print(result[["Hemoglobin_gdL", "Hemoglobin_Risk_Level", "TSH_mIU_L", "TSH_Risk_Level"]])
+
+def print_saved_pdf_summary(path=PDF_OUTPUT):
+    try:
+        result = pd.read_csv(path)
+    except FileNotFoundError:
+        return
+
+    columns = [
+        "Hemoglobin_gdL",
+        "Hemoglobin_Risk_Level",
+        "TSH_mIU_L",
+        "TSH_Risk_Level",
+    ]
+    available_columns = [column for column in columns if column in result.columns]
+    if available_columns:
+        print(result[available_columns])
 
 
 if __name__ == "__main__":
     main()
+    print_saved_pdf_summary()
