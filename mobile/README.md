@@ -41,7 +41,7 @@ Production APK builds must use an HTTPS URL:
 
 ```json
 {
-  "BIODIETIX_API_URL": "https://your-biodietix-api.example.com"
+  "BIODIETIX_API_URL": "https://biodietix-ml.onrender.com"
 }
 ```
 
@@ -67,8 +67,15 @@ Copy the API define template:
 cp firebase_defines.example.json firebase_defines.json
 ```
 
-Fill `firebase_defines.json` with your deployed BioDietix API URL. Firebase is
-read from `android/app/google-services.json` for Android builds.
+Fill `firebase_defines.json` with the deployed BioDietix API URL:
+
+```json
+{
+  "BIODIETIX_API_URL": "https://biodietix-ml.onrender.com"
+}
+```
+
+Firebase is read from `android/app/google-services.json` for Android builds.
 
 ## Run
 

@@ -111,6 +111,12 @@ BioDietix API adresi olmalidir. Gelistirici bilgisayari, emulator adresleri
 veya ozel ag IP'leri baska kullanicilarin telefonunda calismaz. Uygulamada
 preview/giris atlama modu yoktur.
 
+Canli mobil API adresi:
+
+```text
+https://biodietix-ml.onrender.com
+```
+
 APK uretmek icin:
 
 ```bash
