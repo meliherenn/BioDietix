@@ -40,6 +40,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final TextEditingController _age;
   late final TextEditingController _weight;
   late final TextEditingController _height;
+  var _saving = false;
+  String? _saveMessage;
+  bool _saveFailed = false;
 
   @override
   void initState() {
@@ -88,8 +91,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _save() async {
-    _syncPersonalInfo();
-    await widget.onSave();
+    final strings = AppScope.of(context).strings;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _saving = true;
+      _saveMessage = null;
+      _saveFailed = false;
+    });
+
+    try {
+      _syncPersonalInfo();
+      await widget.onSave();
+      if (!mounted) return;
+      setState(() {
+        _saveMessage = strings.t('profileSavedInline');
+        _saveFailed = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saveMessage = '${strings.t('profileSaveFailed')}: $error';
+        _saveFailed = true;
+      });
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -166,7 +192,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 }).toList(),
               ),
               const SizedBox(height: 14),
-              AppButton(label: strings.t('saveProfile'), onPressed: _save),
+              if (_saveMessage != null)
+                NoticeBox(message: _saveMessage!, warning: _saveFailed),
+              AppButton(
+                label: strings.t('saveProfile'),
+                onPressed: _save,
+                busy: _saving,
+              ),
             ],
           ),
         ),

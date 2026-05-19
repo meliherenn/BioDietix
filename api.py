@@ -129,7 +129,10 @@ def lookup_product(barcode: str):
         raise HTTPException(status_code=502, detail=f"Product lookup failed: {exc}") from exc
 
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found in the online food database.",
+        )
     return {"product": product}
 
 

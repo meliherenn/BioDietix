@@ -38,6 +38,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
   var _scannerOpen = false;
   var _busy = false;
+  String? _lookupMessage;
   ProductEvaluation? _evaluation;
 
   bool get _serverReady => BioDietixApi.isConfiguredUrl(widget.apiUrl);
@@ -111,16 +112,32 @@ class _ScanScreenState extends State<ScanScreen> {
       return;
     }
 
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _lookupMessage = null;
+      _evaluation = null;
+    });
     try {
       final product = await BioDietixApi(
         widget.apiUrl,
       ).lookupProduct(_barcode.text.trim());
       _fillProduct(product);
       if (mounted) showAppSnack(context, strings.t('productFound'));
+    } on BioDietixApiException catch (error) {
+      if (!mounted) return;
+      final message = error.isNotFound
+          ? strings.t('productLookupNotFound')
+          : '${strings.t('productLookupFailed')}: ${error.message}';
+      setState(() => _lookupMessage = message);
+      showAppSnack(context, message);
     } catch (error) {
       if (mounted) {
-        showAppSnack(context, '${strings.t('productLookupFailed')}: $error');
+        final details = error.toString();
+        final message = details.contains('404')
+            ? strings.t('productLookupNotFound')
+            : '${strings.t('productLookupFailed')}: $details';
+        setState(() => _lookupMessage = message);
+        showAppSnack(context, message);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -201,11 +218,16 @@ class _ScanScreenState extends State<ScanScreen> {
                 onPressed: _serverReady ? _lookup : null,
                 busy: _busy,
               ),
+              if (_lookupMessage != null) ...[
+                const SizedBox(height: 12),
+                NoticeBox(message: _lookupMessage!, warning: true),
+              ],
             ],
           ),
         ),
         AppCard(
           title: strings.t('productDetails'),
+          subtitle: strings.t('manualProductHint'),
           child: Column(
             children: [
               AppTextField(label: strings.t('name'), controller: _name),

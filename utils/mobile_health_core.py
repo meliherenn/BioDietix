@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -385,8 +386,13 @@ def lookup_open_food_facts_product(barcode, timeout=8):
         f"?fields={encoded_fields}"
     )
 
-    with urllib.request.urlopen(url, timeout=timeout) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return None
+        raise
 
     if payload.get("status") != 1 or not payload.get("product"):
         return None

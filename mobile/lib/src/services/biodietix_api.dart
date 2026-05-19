@@ -136,8 +136,10 @@ class BioDietixApi {
         : <String, dynamic>{};
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
-        payload['detail']?.toString() ?? 'BioDietix API request failed.',
+      throw BioDietixApiException(
+        statusCode: response.statusCode,
+        message:
+            payload['detail']?.toString() ?? 'BioDietix API request failed.',
       );
     }
     return payload;
@@ -147,4 +149,22 @@ class BioDietixApi {
     if (value is List) return value.map((item) => item.toString()).toList();
     return const [];
   }
+}
+
+class BioDietixApiException implements Exception {
+  const BioDietixApiException({
+    required this.statusCode,
+    required this.message,
+  });
+
+  final int statusCode;
+  final String message;
+
+  bool get isNotFound {
+    final normalized = message.toLowerCase();
+    return statusCode == 404 || normalized.contains('404');
+  }
+
+  @override
+  String toString() => message;
 }

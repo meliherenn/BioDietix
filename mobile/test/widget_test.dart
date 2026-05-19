@@ -1,6 +1,8 @@
 import 'package:biodietix_mobile/src/app.dart';
 import 'package:biodietix_mobile/src/i18n.dart';
+import 'package:biodietix_mobile/src/models/personal_info.dart';
 import 'package:biodietix_mobile/src/screens/auth_screen.dart';
+import 'package:biodietix_mobile/src/screens/profile_screen.dart';
 import 'package:biodietix_mobile/src/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -67,5 +69,41 @@ void main() {
     expect(find.text('Sign in'), findsWidgets);
     expect(find.text('Continue with Google'), findsOneWidget);
     expect(find.text('Create a new account'), findsOneWidget);
+  });
+
+  testWidgets('Profile save shows visible confirmation', (
+    WidgetTester tester,
+  ) async {
+    var saved = false;
+
+    await tester.pumpWidget(
+      AppScope(
+        language: AppLanguage.en,
+        strings: const AppStrings(AppLanguage.en),
+        child: MaterialApp(
+          home: Scaffold(
+            body: ProfileScreen(
+              personalInfo: const PersonalInfo(age: 28),
+              allergies: const [],
+              onPersonalInfoChanged: (_) {},
+              onAllergiesChanged: (_) {},
+              onSave: () async {
+                saved = true;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(find.text('Save profile to phone'));
+    await tester.tap(find.text('Save profile to phone'));
+    await tester.pumpAndSettle();
+
+    expect(saved, isTrue);
+    expect(
+      find.textContaining('Profile saved. These values will be used'),
+      findsOneWidget,
+    );
   });
 }

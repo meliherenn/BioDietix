@@ -175,6 +175,9 @@ const _values = {
     'knownAllergies': 'Known allergies',
     'saveProfile': 'Save profile to phone',
     'profileSaved': 'Profile saved on this phone.',
+    'profileSavedInline':
+        'Profile saved. These values will be used for the next blood PDF and product checks.',
+    'profileSaveFailed': 'Profile could not be saved.',
     'healthDataCleared': 'Health data deleted from this phone.',
     'deleteHealthData': 'Delete health data',
     'signOut': 'Sign out',
@@ -215,6 +218,10 @@ const _values = {
     'scanBarcodeFirst': 'Scan or enter a barcode first.',
     'productFound': 'Product found.',
     'productLookupFailed': 'Product lookup failed',
+    'productLookupNotFound':
+        'This barcode was not found in the online food database. You can enter the product details manually and evaluate it.',
+    'manualProductHint':
+        'If barcode lookup does not find the product, fill the visible fields from the label and continue with evaluation.',
     'uploadBloodFirst': 'Upload a blood test PDF first.',
     'productEvaluationFailed': 'Product evaluation failed',
     'closeScanner': 'Close scanner',
@@ -330,6 +337,9 @@ const _values = {
     'knownAllergies': 'Bilinen alerjiler',
     'saveProfile': 'Profili telefona kaydet',
     'profileSaved': 'Profil bu telefona kaydedildi.',
+    'profileSavedInline':
+        'Profil kaydedildi. Bu değerler sonraki kan PDF’i ve ürün kontrollerinde kullanılacak.',
+    'profileSaveFailed': 'Profil kaydedilemedi.',
     'healthDataCleared': 'Sağlık verileri bu telefondan silindi.',
     'deleteHealthData': 'Sağlık verilerini sil',
     'signOut': 'Çıkış yap',
@@ -371,6 +381,10 @@ const _values = {
     'scanBarcodeFirst': 'Önce barkod tara veya gir.',
     'productFound': 'Ürün bulundu.',
     'productLookupFailed': 'Ürün arama başarısız',
+    'productLookupNotFound':
+        'Bu barkod çevrimiçi gıda veritabanında bulunamadı. Ürün bilgilerini elle girip değerlendirebilirsin.',
+    'manualProductHint':
+        'Barkod araması ürünü bulamazsa etiketteki bilgileri görünen alanlara girip değerlendirmeye devam et.',
     'uploadBloodFirst': 'Önce kan testi PDF’i yükle.',
     'productEvaluationFailed': 'Ürün değerlendirme başarısız',
     'closeScanner': 'Tarayıcıyı kapat',
