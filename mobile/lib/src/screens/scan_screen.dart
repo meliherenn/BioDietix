@@ -25,9 +25,15 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   final _barcode = TextEditingController();
   final _name = TextEditingController();
+  final _brand = TextEditingController();
+  final _quantity = TextEditingController();
   final _category = TextEditingController();
   final _ingredients = TextEditingController();
   final _allergens = TextEditingController();
+  final _labels = TextEditingController();
+  final _servingSize = TextEditingController();
+  final _nutritionGrade = TextEditingController();
+  final _novaGroup = TextEditingController();
   final _energy = TextEditingController();
   final _sugar = TextEditingController();
   final _satFat = TextEditingController();
@@ -48,9 +54,15 @@ class _ScanScreenState extends State<ScanScreen> {
     for (final controller in [
       _barcode,
       _name,
+      _brand,
+      _quantity,
       _category,
       _ingredients,
       _allergens,
+      _labels,
+      _servingSize,
+      _nutritionGrade,
+      _novaGroup,
       _energy,
       _sugar,
       _satFat,
@@ -73,9 +85,15 @@ class _ScanScreenState extends State<ScanScreen> {
     return Product(
       barcode: _barcode.text.trim(),
       name: _name.text.trim(),
+      brand: _brand.text.trim(),
+      quantity: _quantity.text.trim(),
       category: _category.text.trim(),
       ingredientsText: _ingredients.text.trim(),
       allergensText: _allergens.text.trim(),
+      labels: _labels.text.trim(),
+      servingSize: _servingSize.text.trim(),
+      nutritionGrade: _nutritionGrade.text.trim(),
+      novaGroup: _number(_novaGroup.text),
       energyKcal100g: _number(_energy.text),
       sugarG100g: _number(_sugar.text),
       saturatedFatG100g: _number(_satFat.text),
@@ -89,9 +107,15 @@ class _ScanScreenState extends State<ScanScreen> {
   void _fillProduct(Product product) {
     _barcode.text = product.barcode;
     _name.text = product.name;
+    _brand.text = product.brand;
+    _quantity.text = product.quantity;
     _category.text = product.category;
     _ingredients.text = product.ingredientsText;
     _allergens.text = product.allergensText;
+    _labels.text = product.labels;
+    _servingSize.text = product.servingSize;
+    _nutritionGrade.text = product.nutritionGrade;
+    _novaGroup.text = product.novaGroup?.toString() ?? '';
     _energy.text = product.energyKcal100g?.toString() ?? '';
     _sugar.text = product.sugarG100g?.toString() ?? '';
     _satFat.text = product.saturatedFatG100g?.toString() ?? '';
@@ -231,6 +255,23 @@ class _ScanScreenState extends State<ScanScreen> {
           child: Column(
             children: [
               AppTextField(label: strings.t('name'), controller: _name),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField(
+                      label: strings.t('brand'),
+                      controller: _brand,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AppTextField(
+                      label: strings.t('quantity'),
+                      controller: _quantity,
+                    ),
+                  ),
+                ],
+              ),
               AppTextField(label: strings.t('category'), controller: _category),
               AppTextField(
                 label: strings.t('ingredients'),
@@ -241,6 +282,33 @@ class _ScanScreenState extends State<ScanScreen> {
                 label: strings.t('declaredAllergens'),
                 controller: _allergens,
                 maxLines: 2,
+              ),
+              AppTextField(
+                label: strings.t('labels'),
+                controller: _labels,
+                maxLines: 2,
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField(
+                      label: strings.t('nutritionGrade'),
+                      controller: _nutritionGrade,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AppTextField(
+                      label: strings.t('novaGroup'),
+                      controller: _novaGroup,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              AppTextField(
+                label: strings.t('servingSize'),
+                controller: _servingSize,
               ),
               Row(
                 children: [
@@ -393,6 +461,16 @@ class _EvaluationCard extends StatelessWidget {
             ),
             ...evaluation.reasons.map(
               (reason) => Text('- ${strings.reason(reason)}'),
+            ),
+          ],
+          if (evaluation.positives.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              strings.t('positiveSignals').toUpperCase(),
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+            ...evaluation.positives.map(
+              (item) => Text('- ${strings.positive(item)}'),
             ),
           ],
           if (evaluation.alternatives.isNotEmpty) ...[

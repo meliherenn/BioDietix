@@ -2,9 +2,15 @@ class Product {
   const Product({
     this.barcode = '',
     this.name = '',
+    this.brand = '',
+    this.quantity = '',
     this.category = '',
     this.ingredientsText = '',
     this.allergensText = '',
+    this.labels = '',
+    this.servingSize = '',
+    this.nutritionGrade = '',
+    this.novaGroup,
     this.energyKcal100g,
     this.sugarG100g,
     this.saturatedFatG100g,
@@ -16,9 +22,15 @@ class Product {
 
   final String barcode;
   final String name;
+  final String brand;
+  final String quantity;
   final String category;
   final String ingredientsText;
   final String allergensText;
+  final String labels;
+  final String servingSize;
+  final String nutritionGrade;
+  final double? novaGroup;
   final double? energyKcal100g;
   final double? sugarG100g;
   final double? saturatedFatG100g;
@@ -30,9 +42,15 @@ class Product {
   Product copyWith({
     String? barcode,
     String? name,
+    String? brand,
+    String? quantity,
     String? category,
     String? ingredientsText,
     String? allergensText,
+    String? labels,
+    String? servingSize,
+    String? nutritionGrade,
+    double? novaGroup,
     double? energyKcal100g,
     double? sugarG100g,
     double? saturatedFatG100g,
@@ -41,6 +59,7 @@ class Product {
     double? proteinG100g,
     double? fiberG100g,
     bool clearEnergy = false,
+    bool clearNovaGroup = false,
     bool clearSugar = false,
     bool clearSaturatedFat = false,
     bool clearSalt = false,
@@ -51,9 +70,15 @@ class Product {
     return Product(
       barcode: barcode ?? this.barcode,
       name: name ?? this.name,
+      brand: brand ?? this.brand,
+      quantity: quantity ?? this.quantity,
       category: category ?? this.category,
       ingredientsText: ingredientsText ?? this.ingredientsText,
       allergensText: allergensText ?? this.allergensText,
+      labels: labels ?? this.labels,
+      servingSize: servingSize ?? this.servingSize,
+      nutritionGrade: nutritionGrade ?? this.nutritionGrade,
+      novaGroup: clearNovaGroup ? null : novaGroup ?? this.novaGroup,
       energyKcal100g: clearEnergy
           ? null
           : energyKcal100g ?? this.energyKcal100g,
@@ -72,9 +97,15 @@ class Product {
     return {
       'barcode': barcode,
       'name': name,
+      'brand': brand,
+      'quantity': quantity,
       'category': category,
       'ingredients_text': ingredientsText,
       'allergens_text': allergensText,
+      'labels': labels,
+      'serving_size': servingSize,
+      'nutrition_grade': nutritionGrade,
+      'nova_group': novaGroup,
       'energy_kcal_100g': energyKcal100g,
       'sugar_g_100g': sugarG100g,
       'saturated_fat_g_100g': saturatedFatG100g,
@@ -89,9 +120,15 @@ class Product {
     return Product(
       barcode: json['barcode']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
+      brand: json['brand']?.toString() ?? '',
+      quantity: json['quantity']?.toString() ?? '',
       category: json['category']?.toString() ?? '',
       ingredientsText: json['ingredients_text']?.toString() ?? '',
       allergensText: json['allergens_text']?.toString() ?? '',
+      labels: json['labels']?.toString() ?? '',
+      servingSize: json['serving_size']?.toString() ?? '',
+      nutritionGrade: json['nutrition_grade']?.toString() ?? '',
+      novaGroup: _number(json['nova_group']),
       energyKcal100g: _number(json['energy_kcal_100g']),
       sugarG100g: _number(json['sugar_g_100g']),
       saturatedFatG100g: _number(json['saturated_fat_g_100g']),

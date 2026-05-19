@@ -74,6 +74,8 @@ ALLERGEN_KEYWORDS = {
     ),
     "peanut": ("peanut", "groundnut", "yer fistigi", "yer fıstığı"),
     "tree_nut": (
+        "nut",
+        "nuts",
         "almond",
         "hazelnut",
         "walnut",
@@ -142,6 +144,12 @@ PRODUCT_FIELD_DEFAULTS = {
     "category": "",
     "ingredients_text": "",
     "allergens_text": "",
+    "brand": "",
+    "quantity": "",
+    "labels": "",
+    "serving_size": "",
+    "nutrition_grade": "",
+    "nova_group": None,
     "energy_kcal_100g": None,
     "sugar_g_100g": None,
     "saturated_fat_g_100g": None,
@@ -170,6 +178,41 @@ def _split_values(value):
     else:
         raw_values = re.split(r"[,;\n|]+", _clean_text(value))
     return [_clean_text(item) for item in raw_values if _clean_text(item)]
+
+
+def _first_text(*values):
+    for value in values:
+        text = _clean_text(value)
+        if text:
+            return text
+    return ""
+
+
+def _humanize_tag(value):
+    text = _clean_text(value)
+    if ":" in text:
+        text = text.split(":", 1)[1]
+    text = text.replace("_", " ").replace("-", " ").strip()
+    replacements = {
+        "nuts": "tree nuts",
+        "peanuts": "peanut",
+        "soybeans": "soy",
+    }
+    return replacements.get(text.casefold(), text)
+
+
+def _humanize_tags(*values):
+    items = []
+    for value in values:
+        if isinstance(value, (list, tuple, set)):
+            raw_values = value
+        else:
+            raw_values = re.split(r"[,;\n|]+", _clean_text(value))
+        for item in raw_values:
+            text = _humanize_tag(item)
+            if text and text not in items:
+                items.append(text)
+    return ", ".join(items)
 
 
 def _to_number(value):
@@ -341,15 +384,30 @@ def product_from_open_food_facts(raw_product):
     product = {
         **PRODUCT_FIELD_DEFAULTS,
         "barcode": _clean_text(raw_product.get("code")),
-        "name": _clean_text(raw_product.get("product_name") or raw_product.get("generic_name")),
-        "category": _clean_text(raw_product.get("categories")),
-        "ingredients_text": _clean_text(raw_product.get("ingredients_text")),
-        "allergens_text": " ".join(
-            [
-                _clean_text(raw_product.get("allergens")),
-                " ".join(raw_product.get("allergens_tags") or []),
-            ]
-        ).strip(),
+        "name": _first_text(
+            raw_product.get("product_name_tr"),
+            raw_product.get("product_name"),
+            raw_product.get("generic_name_tr"),
+            raw_product.get("generic_name"),
+        ),
+        "brand": _clean_text(raw_product.get("brands")),
+        "quantity": _clean_text(raw_product.get("quantity")),
+        "category": _humanize_tags(raw_product.get("categories_tags"))
+        or _clean_text(raw_product.get("categories")),
+        "ingredients_text": _first_text(
+            raw_product.get("ingredients_text_tr"),
+            raw_product.get("ingredients_text"),
+        ),
+        "allergens_text": _humanize_tags(
+            raw_product.get("allergens"),
+            raw_product.get("allergens_tags"),
+        ),
+        "labels": _humanize_tags(raw_product.get("labels"), raw_product.get("labels_tags")),
+        "serving_size": _clean_text(raw_product.get("serving_size")),
+        "nutrition_grade": _clean_text(
+            raw_product.get("nutriscore_grade") or raw_product.get("nutrition_grade_fr")
+        ),
+        "nova_group": _to_number(raw_product.get("nova_group")),
         "energy_kcal_100g": _to_number(nutriments.get("energy-kcal_100g")),
         "sugar_g_100g": _to_number(nutriments.get("sugars_100g")),
         "saturated_fat_g_100g": _to_number(nutriments.get("saturated-fat_100g")),
@@ -371,32 +429,52 @@ def lookup_open_food_facts_product(barcode, timeout=8):
     fields = ",".join(
         [
             "code",
+            "brands",
+            "quantity",
             "product_name",
+            "product_name_tr",
             "generic_name",
+            "generic_name_tr",
             "categories",
+            "categories_tags",
             "ingredients_text",
+            "ingredients_text_tr",
             "allergens",
             "allergens_tags",
+            "labels",
+            "labels_tags",
+            "serving_size",
+            "nutriscore_grade",
+            "nutrition_grade_fr",
+            "nova_group",
             "nutriments",
         ]
     )
     encoded_fields = urllib.parse.quote(fields, safe=",")
-    url = (
-        f"https://world.openfoodfacts.org/api/v2/product/{clean_barcode}.json"
-        f"?fields={encoded_fields}"
-    )
+    urls = [
+        f"https://world.openfoodfacts.org/api/v2/product/{clean_barcode}.json?fields={encoded_fields}&lc=tr",
+        f"https://tr.openfoodfacts.org/api/v2/product/{clean_barcode}.json?fields={encoded_fields}&lc=tr",
+        f"https://world.openfoodfacts.org/api/v0/product/{clean_barcode}.json",
+        f"https://tr.openfoodfacts.org/api/v0/product/{clean_barcode}.json",
+    ]
 
-    try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        if exc.code == 404:
-            return None
-        raise
+    for url in urls:
+        request = urllib.request.Request(
+            url,
+            headers={"User-Agent": "BioDietixML/1.0 (student nutrition project)"},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                continue
+            raise
 
-    if payload.get("status") != 1 or not payload.get("product"):
-        return None
-    return product_from_open_food_facts(payload["product"])
+        if payload.get("status") == 1 and payload.get("product"):
+            return product_from_open_food_facts(payload["product"])
+
+    return None
 
 
 def _combined_product_text(product):
@@ -404,9 +482,11 @@ def _combined_product_text(product):
         " ".join(
             [
                 product.get("name", ""),
+                product.get("brand", ""),
                 product.get("category", ""),
                 product.get("ingredients_text", ""),
                 product.get("allergens_text", ""),
+                product.get("labels", ""),
             ]
         )
     )
@@ -422,8 +502,9 @@ def _find_allergy_conflicts(product, allergies):
     return conflicts
 
 
-def _has_profile(profile_memory, profile_name):
-    return profile_name in _clean_text(profile_memory.get("health_profile"))
+def _profile_contains(profile_memory, *keywords):
+    profile_text = _clean_text(profile_memory.get("health_profile")).casefold()
+    return any(keyword.casefold() in profile_text for keyword in keywords)
 
 
 def _has_limited_food(profile_memory, *keywords):
@@ -435,6 +516,13 @@ def _has_limited_food(profile_memory, *keywords):
 def _add_unique(items, item):
     if item not in items:
         items.append(item)
+
+
+def _record_signal(reasons, alternatives, reason, alternative, severity, points, level):
+    reasons.append(reason)
+    if alternative:
+        _add_unique(alternatives, {"code": alternative})
+    return max(severity, level), points + level
 
 
 def evaluate_product_for_profile(product, profile_memory):
@@ -461,18 +549,184 @@ def evaluate_product_for_profile(product, profile_memory):
     energy = _to_number(normalized_product.get("energy_kcal_100g"))
     protein = _to_number(normalized_product.get("protein_g_100g"))
     fiber = _to_number(normalized_product.get("fiber_g_100g"))
+    nova_group = _to_number(normalized_product.get("nova_group"))
+    nutrition_grade = _normalized(normalized_product.get("nutrition_grade"))
     product_text = _combined_product_text(normalized_product)
 
-    blood_sugar_sensitive = _has_profile(profile_memory, "Blood Sugar Risk")
-    lipid_sensitive = _has_profile(profile_memory, "Cardiovascular Lipid Risk")
-    bp_or_kidney_sensitive = _has_profile(profile_memory, "Blood Pressure Risk") or _has_profile(
-        profile_memory, "Kidney / Muscle Indicator"
+    bmi = _to_number(profile_memory.get("bmi") or profile_memory.get("BMI"))
+    blood_sugar_sensitive = _profile_contains(
+        profile_memory,
+        "Blood Sugar",
+        "Insulin Resistance",
+        "Glucose",
     )
-    weight_sensitive = _has_profile(profile_memory, "Weight Management Risk") or _has_profile(
-        profile_memory, "Abdominal Obesity Risk"
+    lipid_sensitive = _profile_contains(
+        profile_memory,
+        "Cardiovascular Lipid",
+        "Lipid",
+        "Cholesterol",
     )
-    diet_quality_sensitive = _has_profile(profile_memory, "Diet Quality Risk")
-    thyroid_sensitive = _has_profile(profile_memory, "Thyroid / Metabolism Indicator")
+    bp_or_kidney_sensitive = _profile_contains(
+        profile_memory,
+        "Blood Pressure",
+        "Kidney",
+        "Muscle",
+    )
+    weight_sensitive = _profile_contains(
+        profile_memory,
+        "Weight Management",
+        "Obesity",
+        "BMI",
+    ) or (bmi is not None and bmi >= 25)
+    diet_quality_sensitive = _profile_contains(profile_memory, "Diet Quality")
+    thyroid_sensitive = _profile_contains(profile_memory, "Thyroid", "Metabolism")
+    risk_points = 0
+
+    nutrient_values = [sugar, saturated_fat, salt, sodium, energy, protein, fiber]
+    if not any(value is not None for value in nutrient_values):
+        severity, risk_points = _record_signal(
+            reasons,
+            alternatives,
+            {"code": "nutrition_data_missing"},
+            "fresh_whole_food",
+            severity,
+            risk_points,
+            1,
+        )
+
+    if sugar is not None:
+        if sugar >= 35:
+            severity, risk_points = _record_signal(
+                reasons,
+                alternatives,
+                {"code": "very_high_sugar_product", "value": sugar},
+                "low_sugar_snack",
+                severity,
+                risk_points,
+                3,
+            )
+        elif sugar >= 22.5:
+            severity, risk_points = _record_signal(
+                reasons,
+                alternatives,
+                {"code": "high_sugar_product", "value": sugar},
+                "low_sugar_snack",
+                severity,
+                risk_points,
+                2,
+            )
+        elif sugar >= 10:
+            severity, risk_points = _record_signal(
+                reasons,
+                alternatives,
+                {"code": "moderate_sugar_product", "value": sugar},
+                "low_sugar_snack",
+                severity,
+                risk_points,
+                1,
+            )
+
+    if saturated_fat is not None:
+        if saturated_fat >= 15:
+            severity, risk_points = _record_signal(
+                reasons,
+                alternatives,
+                {"code": "very_high_saturated_fat_product", "value": saturated_fat},
+                "unsaturated_fat_option",
+                severity,
+                risk_points,
+                3,
+            )
+        elif saturated_fat >= 5:
+            severity, risk_points = _record_signal(
+                reasons,
+                alternatives,
+                {"code": "high_saturated_fat_product", "value": saturated_fat},
+                "unsaturated_fat_option",
+                severity,
+                risk_points,
+                2,
+            )
+
+    high_sodium = (salt is not None and salt >= 1.5) or (sodium is not None and sodium >= 600)
+    moderate_sodium = (salt is not None and salt >= 0.75) or (sodium is not None and sodium >= 300)
+    if high_sodium:
+        severity, risk_points = _record_signal(
+            reasons,
+            alternatives,
+            {"code": "high_salt_product", "salt": salt, "sodium": sodium},
+            "unsalted_option",
+            severity,
+            risk_points,
+            2,
+        )
+    elif moderate_sodium:
+        severity, risk_points = _record_signal(
+            reasons,
+            alternatives,
+            {"code": "moderate_salt_product", "salt": salt, "sodium": sodium},
+            "unsalted_option",
+            severity,
+            risk_points,
+            1,
+        )
+
+    if energy is not None:
+        if energy >= 550:
+            severity, risk_points = _record_signal(
+                reasons,
+                alternatives,
+                {"code": "very_high_energy_product", "value": energy},
+                "high_fiber_option",
+                severity,
+                risk_points,
+                2,
+            )
+        elif energy >= 400:
+            severity, risk_points = _record_signal(
+                reasons,
+                alternatives,
+                {"code": "high_energy_product", "value": energy},
+                "high_fiber_option",
+                severity,
+                risk_points,
+                1,
+            )
+
+    if nova_group is not None and nova_group >= 4:
+        severity, risk_points = _record_signal(
+            reasons,
+            alternatives,
+            {"code": "ultra_processed_product", "value": nova_group},
+            "fresh_whole_food",
+            severity,
+            risk_points,
+            2,
+        )
+
+    if nutrition_grade in {"d", "e"}:
+        severity, risk_points = _record_signal(
+            reasons,
+            alternatives,
+            {"code": "poor_nutrition_grade", "value": nutrition_grade.upper()},
+            "fresh_whole_food",
+            severity,
+            risk_points,
+            2 if nutrition_grade == "e" else 1,
+        )
+
+    if fiber is not None and fiber < 3 and (
+        (sugar is not None and sugar >= 10) or (energy is not None and energy >= 400)
+    ):
+        severity, risk_points = _record_signal(
+            reasons,
+            alternatives,
+            {"code": "low_fiber_product", "value": fiber},
+            "high_fiber_option",
+            severity,
+            risk_points,
+            1,
+        )
 
     if blood_sugar_sensitive and sugar is not None:
         if sugar >= 22.5:
@@ -531,7 +785,7 @@ def evaluate_product_for_profile(product, profile_memory):
         _add_unique(alternatives, {"code": "high_fiber_option"})
         severity = max(severity, 1)
 
-    if _has_profile(profile_memory, "Kidney / Muscle Indicator") and protein is not None and protein >= 25:
+    if bp_or_kidney_sensitive and protein is not None and protein >= 25:
         reasons.append({"code": "high_protein_kidney", "value": protein})
         _add_unique(alternatives, {"code": "balanced_protein_option"})
         severity = max(severity, 2)
@@ -540,13 +794,17 @@ def evaluate_product_for_profile(product, profile_memory):
         positives.append({"code": "good_fiber", "value": fiber})
     if protein is not None and 8 <= protein < 25:
         positives.append({"code": "good_protein", "value": protein})
+    if sugar is not None and sugar <= 5:
+        positives.append({"code": "low_sugar", "value": sugar})
+    if salt is not None and salt <= 0.3:
+        positives.append({"code": "low_salt", "value": salt})
 
-    if not alternatives:
+    if reasons and not alternatives:
         _add_unique(alternatives, {"code": "fresh_whole_food"})
 
-    if severity >= 3:
+    if severity >= 3 or risk_points >= 5:
         decision = "not_recommended"
-    elif severity >= 1:
+    elif severity >= 1 or risk_points >= 2:
         decision = "use_with_caution"
     else:
         decision = "recommended"
