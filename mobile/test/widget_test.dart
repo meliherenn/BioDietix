@@ -1,5 +1,6 @@
 import 'package:biodietix_mobile/src/app.dart';
 import 'package:biodietix_mobile/src/i18n.dart';
+import 'package:biodietix_mobile/src/screens/auth_screen.dart';
 import 'package:biodietix_mobile/src/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,5 +51,21 @@ void main() {
     expect(find.text('System'), findsOneWidget);
     expect(find.text('Light'), findsOneWidget);
     expect(find.text('Dark'), findsOneWidget);
+  });
+
+  testWidgets('Auth screen exposes Google sign-in action', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      AppScope(
+        language: AppLanguage.en,
+        strings: const AppStrings(AppLanguage.en),
+        child: const MaterialApp(home: AuthScreen(firebaseReady: true)),
+      ),
+    );
+
+    expect(find.text('Sign in'), findsWidgets);
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Create a new account'), findsOneWidget);
   });
 }

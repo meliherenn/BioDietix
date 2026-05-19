@@ -133,7 +133,25 @@ const _values = {
     'createAccount': 'Create account',
     'createNewAccount': 'Create a new account',
     'alreadyHaveAccount': 'I already have an account',
+    'or': 'OR',
+    'continueWithGoogle': 'Continue with Google',
     'authenticationFailed': 'Authentication failed.',
+    'firebaseAuthConfigError':
+        'Firebase Authentication is not fully configured. Enable Email/Password and Google providers in Firebase Console, add Android SHA-1/SHA-256 fingerprints, then download the updated google-services.json.',
+    'googleSignInFailed': 'Google sign-in failed',
+    'googleSignInCanceled': 'Google sign-in was canceled.',
+    'googleSignInUnavailable':
+        'Google sign-in is not available on this device.',
+    'googleMissingIdToken':
+        'Google did not return an ID token. Check Firebase Google provider and Android SHA fingerprints.',
+    'googleConfigError':
+        'Google sign-in is not configured correctly. Enable Google provider and add Android SHA-1/SHA-256 fingerprints in Firebase.',
+    'emailAlreadyInUse': 'This email address is already registered.',
+    'invalidEmail': 'Enter a valid email address.',
+    'weakPassword': 'Password must be at least 6 characters.',
+    'wrongPassword': 'Email or password is incorrect.',
+    'userNotFound': 'No account was found for this email.',
+    'networkRequestFailed': 'Network connection failed. Try again.',
     'homeHeroTitle': 'Scan food against your own labs',
     'homeHeroSubtitle':
         'BioDietix keeps body measurements, allergies, and latest lab memory on the phone. Product checks use that profile until a newer PDF is uploaded.',
@@ -271,7 +289,24 @@ const _values = {
     'createAccount': 'Hesap oluştur',
     'createNewAccount': 'Yeni hesap oluştur',
     'alreadyHaveAccount': 'Zaten hesabım var',
+    'or': 'VEYA',
+    'continueWithGoogle': 'Google ile devam et',
     'authenticationFailed': 'Kimlik doğrulama başarısız.',
+    'firebaseAuthConfigError':
+        'Firebase Authentication tam yapılandırılmamış. Firebase Console’da Email/Password ve Google sağlayıcılarını aç, Android SHA-1/SHA-256 parmak izlerini ekle, sonra güncel google-services.json dosyasını indir.',
+    'googleSignInFailed': 'Google ile giriş başarısız',
+    'googleSignInCanceled': 'Google ile giriş iptal edildi.',
+    'googleSignInUnavailable': 'Bu cihazda Google ile giriş kullanılamıyor.',
+    'googleMissingIdToken':
+        'Google ID token döndürmedi. Firebase Google sağlayıcısını ve Android SHA parmak izlerini kontrol et.',
+    'googleConfigError':
+        'Google ile giriş doğru yapılandırılmamış. Firebase’de Google sağlayıcısını aç ve Android SHA-1/SHA-256 parmak izlerini ekle.',
+    'emailAlreadyInUse': 'Bu e-posta adresi zaten kayıtlı.',
+    'invalidEmail': 'Geçerli bir e-posta adresi gir.',
+    'weakPassword': 'Şifre en az 6 karakter olmalı.',
+    'wrongPassword': 'E-posta veya şifre hatalı.',
+    'userNotFound': 'Bu e-posta için hesap bulunamadı.',
+    'networkRequestFailed': 'Ağ bağlantısı başarısız. Tekrar dene.',
     'homeHeroTitle': 'Yiyecekleri kendi testlerine göre tara',
     'homeHeroSubtitle':
         'BioDietix boy, kilo, alerji ve son test hafızasını telefonda tutar. Yeni PDF yüklenene kadar ürün kontrolleri bu profile göre yapılır.',

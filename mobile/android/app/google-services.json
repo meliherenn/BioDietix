@@ -12,7 +12,20 @@
           "package_name": "com.biodietix.biodietix_mobile"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "333229965336-2t4321jthms8017cdml6s8srvieedae0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.biodietix.biodietix_mobile",
+            "certificate_hash": "d040ae3d9b83fc5f2157aad4462a912a9abb791d"
+          }
+        },
+        {
+          "client_id": "333229965336-0ssorfh1egdfmfn7p6nc1ujcupu5nd0a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyChS_utWZCruMmStbsBxmzpiM0JnNw-e4w"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "333229965336-0ssorfh1egdfmfn7p6nc1ujcupu5nd0a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

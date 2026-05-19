@@ -10,6 +10,7 @@ import 'screens/profile_screen.dart';
 import 'screens/scan_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/tests_screen.dart';
+import 'services/google_sign_in_service.dart';
 import 'services/local_store.dart';
 import 'widgets/ui.dart';
 
@@ -123,6 +124,11 @@ class _BioDietixAppState extends State<BioDietixApp> {
   }
 
   Future<void> _signOut() async {
+    try {
+      await GoogleSignInService.signOut();
+    } on Exception {
+      // Firebase sign-out below is the source of truth for app state.
+    }
     if (FirebaseAuth.instance.currentUser != null) {
       await FirebaseAuth.instance.signOut();
     }

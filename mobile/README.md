@@ -5,6 +5,7 @@ Installable Android app for BioDietix.
 ## Features
 
 - Firebase Auth email/password login.
+- Firebase Auth Google sign-in.
 - Phone storage for personal profile, allergies, theme/language preference, and latest lab memory.
 - English and Turkish interface from the Settings tab.
 - System, light, and dark theme options from the Settings tab.
@@ -21,7 +22,7 @@ when another user installs the APK.
 
 Before building an APK for other users, provide:
 
-- A Firebase project with Email/Password Authentication enabled.
+- A Firebase project with Email/Password and Google Authentication enabled.
 - A deployed BioDietix FastAPI backend with a public HTTPS URL.
 
 The app intentionally has no preview/offline-login mode. If Firebase is not
@@ -47,7 +48,19 @@ Production APK builds must use an HTTPS URL:
 
 ## Firebase
 
-Create a Firebase project and enable Email/Password authentication.
+Create a Firebase project and enable these sign-in providers:
+
+- Email/Password
+- Google
+
+For Google sign-in on Android, add the app signing certificate fingerprints
+under Firebase Project settings > Your apps > Android app:
+
+- SHA-1
+- SHA-256
+
+After changing providers or certificate fingerprints, download a fresh
+`google-services.json`.
 
 Place the Android Firebase file at:
 

@@ -103,7 +103,10 @@ flutter pub get
 flutter run --dart-define-from-file=firebase_defines.json
 ```
 
-Firebase Console'da Email/Password Authentication etkinlestirilmelidir.
+Firebase Console'da Email/Password ve Google Authentication
+etkinlestirilmelidir. Google ile Android girisi icin Firebase Android app
+ayarlarina SHA-1 ve SHA-256 sertifika parmak izleri eklenmeli, ardindan guncel
+`google-services.json` yeniden indirilmelidir.
 Android Firebase dosyasi `mobile/android/app/google-services.json` konumunda
 bulunmalidir ve paket adi `com.biodietix.biodietix_mobile` olmalidir.
 Telefonlara kurulacak APK icin `BIODIETIX_API_URL` mutlaka internete acik HTTPS
@@ -214,6 +217,7 @@ Eklenen mobil mimari:
   istemci.
 - Firebase Auth: Kullanici girisi ve oturum yonetimi. Android Firebase
   yapilandirmasi `mobile/android/app/google-services.json` ile verilir.
+  Email/Password ve Google giris saglayicilari desteklenir.
 - Telefon hafizasi: Boy, kilo, alerjiler, tema/dil tercihi ve son kan testi
   sonucu burada tutulur. Yeni PDF yuklenene kadar son profil kullanilir.
 - Ayarlar: Mobil uygulamada `Settings/Ayarlar` sekmesinden Ingilizce/Turkce dil
