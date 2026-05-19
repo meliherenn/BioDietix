@@ -1,6 +1,10 @@
 import re
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
+
+from utils.food_recommendation_guide import add_food_guide_to_recommendations
 
 
 # =========================================================
@@ -15,17 +19,62 @@ RECOMMENDATION_OUTPUT = "BioDietix_Recommendation_System.csv"
 PDF_OUTPUT = "Patient_PDF_Recommendation_Result.csv"
 
 
-# =========================================================
-# HELPER FUNCTIONS
-# =========================================================
 
 def is_risk(value):
     return pd.notna(value) and value != "Normal"
 
 
 def clean_value(value):
-    value = str(value).replace("<", "").replace(">", "").replace(",", ".").strip()
+    match = re.search(r"[-+]?\d+(?:[.,]\d+)?", str(value))
+    if not match:
+        return np.nan
+    value = match.group(0).replace(",", ".").strip()
     return float(value)
+
+
+def parse_report_date(value):
+    try:
+        return datetime.strptime(value, "%d.%m.%Y").date()
+    except (TypeError, ValueError):
+        return None
+
+
+def calculate_age(birth_date, report_date):
+    if not birth_date or not report_date:
+        return np.nan
+    return (
+        report_date.year
+        - birth_date.year
+        - ((report_date.month, report_date.day) < (birth_date.month, birth_date.day))
+    )
+
+
+def calculate_bmi(weight_kg, height_cm):
+    if pd.isna(weight_kg) or pd.isna(height_cm) or height_cm <= 0:
+        return np.nan
+    height_m = height_cm / 100
+    return round(weight_kg / (height_m ** 2), 1)
+
+
+def enrich_anthropometrics(data):
+    data = data.copy()
+    if "BMI" not in data.columns:
+        data["BMI"] = np.nan
+
+    if "Weight_kg" in data.columns:
+        data["Weight_kg"] = pd.to_numeric(data["Weight_kg"], errors="coerce")
+    if "Height_cm" in data.columns:
+        data["Height_cm"] = pd.to_numeric(data["Height_cm"], errors="coerce")
+
+    if "Weight_kg" in data.columns and "Height_cm" in data.columns:
+        calculated_bmi = data.apply(
+            lambda row: calculate_bmi(row.get("Weight_kg"), row.get("Height_cm")),
+            axis=1,
+        )
+        data["BMI"] = pd.to_numeric(data["BMI"], errors="coerce")
+        data["BMI"] = data["BMI"].fillna(calculated_bmi)
+
+    return data
 
 
 def extract_pdf_text(pdf_path):
@@ -85,6 +134,33 @@ def bmi_risk(bmi):
         return "Overweight Risk"
     else:
         return "Obesity Risk"
+
+
+def age_group(age):
+    if pd.isna(age):
+        return np.nan
+    if age < 18:
+        return "Under 18"
+    if age < 31:
+        return "Young Adult"
+    if age < 51:
+        return "Adult"
+    if age < 65:
+        return "Midlife"
+    return "Older Adult"
+
+
+def age_risk(age):
+    group = age_group(age)
+    if pd.isna(group):
+        return np.nan
+    if group == "Under 18":
+        return "Under 18 - Not Supported"
+    if group in {"Young Adult", "Adult"}:
+        return "Age-Appropriate Adult Focus"
+    if group == "Midlife":
+        return "Midlife Prevention Focus"
+    return "Older Adult Nutrition Focus"
 
 
 def bp_risk(sys_bp, dia_bp):
@@ -195,6 +271,67 @@ def ast_risk(ast):
         return "Normal"
     else:
         return "Elevated AST Risk"
+
+
+def alt_risk(gender, alt):
+    if pd.isna(alt):
+        return np.nan
+    upper_limit = 41 if gender == "Male" else 35
+    return "Normal" if alt <= upper_limit else "Elevated ALT Risk"
+
+
+def hdl_risk(gender, hdl):
+    if pd.isna(hdl):
+        return np.nan
+    lower_limit = 40 if gender == "Male" else 50
+    return "Low HDL Risk" if hdl < lower_limit else "Normal"
+
+
+def crp_risk(crp):
+    if pd.isna(crp):
+        return np.nan
+    return "Elevated CRP Indicator" if crp > 5 else "Normal"
+
+
+def vitamin_d_risk(vitamin_d):
+    if pd.isna(vitamin_d):
+        return np.nan
+    if vitamin_d < 20:
+        return "Low Vitamin D Indicator"
+    if vitamin_d < 30:
+        return "Vitamin D Insufficiency Indicator"
+    return "Normal"
+
+
+def b12_risk(vitamin_b12):
+    if pd.isna(vitamin_b12):
+        return np.nan
+    if vitamin_b12 < 200:
+        return "Low Vitamin B12 Indicator"
+    if vitamin_b12 < 300:
+        return "Borderline Vitamin B12 Indicator"
+    return "Normal"
+
+
+def folate_risk(folate):
+    if pd.isna(folate):
+        return np.nan
+    return "Low Folate Indicator" if folate < 4.6 else "Normal"
+
+
+def ferritin_risk(gender, ferritin):
+    if pd.isna(ferritin):
+        return np.nan
+    if ferritin < 30:
+        return "Low Ferritin Indicator"
+    high_limit = 400 if gender == "Male" else 150
+    return "High Ferritin Indicator" if ferritin > high_limit else "Normal"
+
+
+def egfr_risk(egfr):
+    if pd.isna(egfr):
+        return np.nan
+    return "Reduced eGFR Indicator" if egfr < 60 else "Normal"
 
 
 def fiber_risk(fiber):
@@ -346,7 +483,11 @@ def tsh_risk(tsh):
 # =========================================================
 
 def apply_risk_engine(data):
-    data = data.copy()
+    data = enrich_anthropometrics(data)
+
+    if "Age" in data.columns:
+        data["Age_Group"] = data["Age"].apply(age_group)
+        data["Age_Risk_Level"] = data["Age"].apply(age_risk)
 
     data["Glucose_Risk_Level"] = data["Glucose_mgdL"].apply(glucose_risk)
     data["HbA1c_Risk_Level"] = data["HbA1c_Percent"].apply(hba1c_risk)
@@ -366,10 +507,19 @@ def apply_risk_engine(data):
     data["LDL_Risk_Level"] = data["Cholesterol_LDL_mgdL"].apply(ldl_risk)
     data["Triglyceride_Risk_Level"] = data["Triglycerides_mgdL"].apply(triglyceride_risk)
 
+    if "Cholesterol_HDL_mgdL" in data.columns:
+        data["HDL_Risk_Level"] = data.apply(
+            lambda row: hdl_risk(row["Gender"], row["Cholesterol_HDL_mgdL"]),
+            axis=1
+        )
+
     data["Creatinine_Risk_Level"] = data.apply(
         lambda row: creatinine_risk(row["Gender"], row["Kidney_Creatinine_mgdL"]),
         axis=1
     )
+
+    if "eGFR_ml_min_1_73m2" in data.columns:
+        data["eGFR_Risk_Level"] = data["eGFR_ml_min_1_73m2"].apply(egfr_risk)
 
     data["Hemoglobin_Risk_Level"] = data.apply(
         lambda row: hemoglobin_risk(row["Gender"], row["Hemoglobin_gdL"]),
@@ -377,6 +527,30 @@ def apply_risk_engine(data):
     )
 
     data["AST_Risk_Level"] = data["Liver_AST_UL"].apply(ast_risk)
+
+    if "Liver_ALT_UL" in data.columns:
+        data["ALT_Risk_Level"] = data.apply(
+            lambda row: alt_risk(row["Gender"], row["Liver_ALT_UL"]),
+            axis=1
+        )
+
+    if "CRP_mg_L" in data.columns:
+        data["CRP_Risk_Level"] = data["CRP_mg_L"].apply(crp_risk)
+
+    if "VitaminD_ng_mL" in data.columns:
+        data["VitaminD_Risk_Level"] = data["VitaminD_ng_mL"].apply(vitamin_d_risk)
+
+    if "Vitamin_B12_pg_mL" in data.columns:
+        data["B12_Risk_Level"] = data["Vitamin_B12_pg_mL"].apply(b12_risk)
+
+    if "Folate_ng_mL" in data.columns:
+        data["Folate_Risk_Level"] = data["Folate_ng_mL"].apply(folate_risk)
+
+    if "Ferritin_ng_mL" in data.columns:
+        data["Ferritin_Risk_Level"] = data.apply(
+            lambda row: ferritin_risk(row["Gender"], row["Ferritin_ng_mL"]),
+            axis=1
+        )
 
     data["Fiber_Risk_Level"] = data["Daily_Fiber_g"].apply(fiber_risk)
     data["Sugar_Risk_Level"] = data["Daily_Sugar_g"].apply(sugar_risk)
@@ -424,7 +598,8 @@ def create_health_profile(row):
        row.get("Triglyceride_Risk_Level") in ["Borderline High", "High", "Very High"]:
         profiles.append("Cardiovascular Lipid Risk")
 
-    if row.get("Creatinine_Risk_Level") in ["Low", "High Risk"]:
+    if row.get("Creatinine_Risk_Level") in ["Low", "High Risk"] or \
+       row.get("eGFR_Risk_Level") == "Reduced eGFR Indicator":
         profiles.append("Kidney / Muscle Indicator")
 
     if is_risk(row.get("Hemoglobin_Risk_Level")):
@@ -439,7 +614,8 @@ def create_health_profile(row):
     if is_risk(row.get("Platelet_Risk_Level")):
         profiles.append("Platelet Support Indicator")
 
-    if row.get("AST_Risk_Level") == "Elevated AST Risk":
+    if row.get("AST_Risk_Level") == "Elevated AST Risk" or \
+       row.get("ALT_Risk_Level") == "Elevated ALT Risk":
         profiles.append("Liver Enzyme Indicator")
 
     if pd.notna(row.get("Diet_Quality_Risk_Level")) and row.get("Diet_Quality_Risk_Level") != "Good Diet Quality":
@@ -450,6 +626,23 @@ def create_health_profile(row):
 
     if is_risk(row.get("TSH_Risk_Level")):
         profiles.append("Thyroid / Metabolism Indicator")
+
+    if row.get("HDL_Risk_Level") == "Low HDL Risk":
+        profiles.append("Cardiovascular Lipid Risk")
+
+    if is_risk(row.get("CRP_Risk_Level")):
+        profiles.append("Immune / Inflammation Indicator")
+
+    if is_risk(row.get("VitaminD_Risk_Level")):
+        profiles.append("Vitamin D / Bone Health Indicator")
+
+    if is_risk(row.get("B12_Risk_Level")) or \
+       is_risk(row.get("Folate_Risk_Level")) or \
+       is_risk(row.get("Ferritin_Risk_Level")):
+        profiles.append("Micronutrient Support Indicator")
+
+    if row.get("Age_Risk_Level") in ["Midlife Prevention Focus", "Older Adult Nutrition Focus"]:
+        profiles.append("Age-Related Nutrition Focus")
 
     if len(profiles) == 0:
         return "Low Risk"
@@ -466,6 +659,32 @@ def generate_recommendations(row):
     increase_foods = []
     limit_foods = []
 
+    age_group_value = row.get("Age_Group")
+    if age_group_value == "Young Adult":
+        recommendations.append(
+            "For this age group, build long-term habits with regular meals, adequate protein, fiber, and physical activity."
+        )
+        increase_foods.extend(["balanced meals", "lean protein", "whole grains", "vegetables", "fruits"])
+        limit_foods.extend(["frequent fast food", "sugary drinks", "meal skipping"])
+    elif age_group_value == "Adult":
+        recommendations.append(
+            "For adult metabolic maintenance, prioritize portion control, fiber, lean protein, and consistent activity."
+        )
+        increase_foods.extend(["fiber-rich foods", "lean protein", "vegetables", "healthy fats"])
+        limit_foods.extend(["large portions", "processed foods", "excess sugar"])
+    elif age_group_value == "Midlife":
+        recommendations.append(
+            "For midlife prevention, focus on cardiovascular health, muscle maintenance, fiber, vitamin D, calcium, and regular checkups."
+        )
+        increase_foods.extend(["fish", "low-fat dairy", "legumes", "vegetables", "vitamin D foods", "calcium-rich foods"])
+        limit_foods.extend(["saturated fat", "excess sodium", "ultra-processed foods"])
+    elif age_group_value == "Older Adult":
+        recommendations.append(
+            "For older adults, protect muscle and bone health with adequate protein, vitamin D, calcium, hydration, and clinically guided follow-up."
+        )
+        increase_foods.extend(["eggs", "fish", "yogurt", "low-fat dairy", "water", "protein-rich foods"])
+        limit_foods.extend(["very low-calorie diets", "dehydration", "high-sodium foods"])
+
     if "Blood Sugar Risk" in row["Health_Profile"]:
         recommendations.append(
             "Reduce added sugar and refined carbohydrates, and prefer low-glycemic foods."
@@ -479,6 +698,13 @@ def generate_recommendations(row):
         )
         increase_foods.extend(["lean protein", "vegetables", "low-fat yogurt", "legumes"])
         limit_foods.extend(["fast food", "fried foods", "high-calorie snacks", "processed foods"])
+
+    if row.get("BMI_Risk_Level") == "Underweight":
+        recommendations.append(
+            "BMI indicates an underweight range. Increase nutrient-dense calories with protein-rich meals and healthy fats, and review unintentional weight loss with a healthcare professional."
+        )
+        increase_foods.extend(["protein-rich foods", "nuts", "olive oil", "yogurt", "eggs", "legumes", "balanced meals"])
+        limit_foods.extend(["meal skipping", "very restrictive diets"])
 
     if "Blood Pressure Risk" in row["Health_Profile"]:
         recommendations.append(
@@ -540,7 +766,7 @@ def generate_recommendations(row):
 
     if "Liver Enzyme Indicator" in row["Health_Profile"]:
         recommendations.append(
-            "Reduce alcohol, fried foods, and excess sugar to support liver health."
+            "Liver enzyme changes should be reviewed with a healthcare professional. Reduce alcohol, fried foods, and excess sugar to support liver health."
         )
         increase_foods.extend(["vegetables", "whole grains", "coffee without sugar", "omega-3 rich foods"])
         limit_foods.extend(["alcohol", "fried foods", "sugary drinks", "processed foods"])
@@ -566,6 +792,27 @@ def generate_recommendations(row):
         increase_foods.extend(["high-fiber vegetables", "lean protein", "whole grains"])
         limit_foods.extend(["sugary foods", "refined carbohydrates", "large portions"])
 
+    if "Vitamin D / Bone Health Indicator" in row["Health_Profile"]:
+        recommendations.append(
+            "Low vitamin D should be reviewed with a healthcare professional. Support bone health with vitamin D, calcium, protein, and safe sunlight exposure when appropriate."
+        )
+        increase_foods.extend(["fatty fish", "eggs", "fortified dairy", "yogurt", "calcium-rich foods", "vitamin D foods"])
+        limit_foods.extend(["very low-calorie diets", "nutrient-poor processed foods"])
+
+    if "Micronutrient Support Indicator" in row["Health_Profile"]:
+        recommendations.append(
+            "Micronutrient abnormalities should be interpreted with clinical context. Support iron, folate, B12, vitamin C, and protein intake based on the specific deficiency pattern."
+        )
+        increase_foods.extend(["lean red meat", "eggs", "fish", "lentils", "beans", "leafy greens", "citrus fruits"])
+        limit_foods.extend(["tea or coffee immediately with iron-rich meals", "very restrictive diets"])
+
+    add_food_guide_to_recommendations(
+        row,
+        recommendations,
+        increase_foods,
+        limit_foods,
+    )
+
     if len(recommendations) == 0:
         recommendations.append(
             "Maintain a balanced diet with regular meals, adequate fiber, lean protein, and healthy fats."
@@ -589,21 +836,62 @@ def generate_recommendations(row):
 # =========================================================
 
 test_patterns = {
-    "TSH_mIU_L": r"\bTSH\s+([<>]?\s*\d+\.?\d*)",
-    "Hemoglobin_gdL": r"\bHGB\s+([<>]?\s*\d+\.?\d*)",
-    "Hematocrit_Percent": r"\bHCT\s+([<>]?\s*\d+\.?\d*)",
-    "Red_Blood_Cells_count": r"\bRBC\s+([<>]?\s*\d+\.?\d*)",
-    "White_Blood_Cells_count": r"\bWBC\s+([<>]?\s*\d+\.?\d*)",
-    "Platelet_count": r"\bPLT\s+([<>]?\s*\d+\.?\d*)",
+    "TSH_mIU_L": r"(?im)^\s*TSH\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Hemoglobin_gdL": r"(?im)^\s*HGB\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Hematocrit_Percent": r"(?im)^\s*HCT\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Red_Blood_Cells_count": r"(?im)^\s*RBC\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "White_Blood_Cells_count": r"(?im)^\s*WBC\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Platelet_count": r"(?im)^\s*PLT\s+([<>]?\s*\d+(?:[.,]\d+)?)",
 
-    "Glucose_mgdL": r"\b(?:GLUCOSE|Glucose|GLUKOZ|Glukoz|Açlık Kan Şekeri|Aclik Kan Sekeri)\s+([<>]?\s*\d+\.?\d*)",
-    "HbA1c_Percent": r"\b(?:HbA1c|HBA1C|Hemoglobin A1c)\s+([<>]?\s*\d+\.?\d*)",
-    "Cholesterol_Total_mgdL": r"\b(?:Total Cholesterol|TOTAL CHOLESTEROL|Kolesterol|Total Kolesterol)\s+([<>]?\s*\d+\.?\d*)",
-    "Cholesterol_LDL_mgdL": r"\b(?:LDL|LDL Cholesterol|LDL Kolesterol)\s+([<>]?\s*\d+\.?\d*)",
-    "Triglycerides_mgdL": r"\b(?:Triglyceride|TRIGLYCERIDE|Trigliserid|TG)\s+([<>]?\s*\d+\.?\d*)",
-    "Kidney_Creatinine_mgdL": r"\b(?:Creatinine|CREATININE|Kreatinin|KREATININ)\s+([<>]?\s*\d+\.?\d*)",
-    "Liver_AST_UL": r"\b(?:AST|SGOT)\s+([<>]?\s*\d+\.?\d*)"
+    "Glucose_mgdL": r"(?im)^\s*(?:GLUCOSE|Glucose|GLUKOZ|Glukoz|Açlık Kan Şekeri|Aclik Kan Sekeri)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "HbA1c_Percent": r"(?im)^\s*(?:HbA1c|HBA1C|Hemoglobin A1c)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Cholesterol_Total_mgdL": r"(?im)^\s*(?:Total Cholesterol|TOTAL CHOLESTEROL|Kolesterol|Total Kolesterol)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Cholesterol_LDL_mgdL": r"(?im)^\s*(?:LDL kolesterol|LDL cholesterol|LDL Kolesterol|LDL)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Cholesterol_HDL_mgdL": r"(?im)^\s*(?:HDL kolesterol|HDL cholesterol|HDL Kolesterol|HDL)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Triglycerides_mgdL": r"(?im)^\s*(?:Triglyceride|TRIGLYCERIDE|Trigliserid|TG)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Kidney_Creatinine_mgdL": r"(?im)^\s*(?:Creatinine|CREATININE|Kreatinin|KREATININ)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "eGFR_ml_min_1_73m2": r"(?im)^\s*eGFR\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Liver_AST_UL": r"(?im)^\s*(?:AST|SGOT|Aspartat transaminaz(?:\s*\(AST\))?)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Liver_ALT_UL": r"(?im)^\s*(?:ALT|SGPT|Alanin aminotransferaz(?:\s*\(ALT\))?)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "CRP_mg_L": r"(?im)^\s*(?:CRP[, ]*türbidimetrik|CRP)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Ferritin_ng_mL": r"(?im)^\s*Ferritin\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Folate_ng_mL": r"(?im)^\s*(?:Folik Asit|Folate|Folat)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Calcium_mg_dL": r"(?im)^\s*(?:Kalsiyum\s*\(Ca\)|Calcium)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Magnesium_mg_dL": r"(?im)^\s*(?:Magnezyum|Magnesium)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Urea_mgdL": r"(?im)^\s*(?:Üre|Ure|Urea)(?:\s*\(Serum/Plazma\))?\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Vitamin_B12_pg_mL": r"(?im)^\s*(?:Vitamin B12|B12)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "VitaminD_ng_mL": r"(?im)^\s*(?:25-Hidroksi Vitamin D|25 Hydroxy Vitamin D|Vitamin D)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Iron_ugdL": r"(?im)^\s*(?:Demir \(Serum\)|Iron)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Iron_Binding_Capacity_ugdL": r"(?im)^\s*(?:Demir bağlama kapasitesi|Total Iron Binding Capacity|TIBC)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Sedimentation_mm_h": r"(?im)^\s*(?:Sedimentasyon|ESR)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Free_T3_pg_mL": r"(?im)^\s*(?:Serbest T3|Free T3|FT3)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
+    "Free_T4_ng_dL": r"(?im)^\s*(?:Serbest T4|Free T4|FT4)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
 }
+
+
+def extract_patient_metadata(text):
+    metadata = {}
+
+    gender_match = re.search(r"Cinsiyet:\s*(Erkek|Kadın|Kadin|Male|Female)", text, re.IGNORECASE)
+    if gender_match:
+        gender_text = gender_match.group(1).strip().casefold()
+        metadata["Gender"] = "Male" if gender_text in {"erkek", "male"} else "Female"
+
+    report_date_match = re.search(r"\bTarih:\s*(\d{2}\.\d{2}\.\d{4})", text)
+    birth_date_match = re.search(r"Doğum Tarihi:\s*(\d{2}\.\d{2}\.\d{4})", text)
+    report_date = parse_report_date(report_date_match.group(1)) if report_date_match else None
+    birth_date = parse_report_date(birth_date_match.group(1)) if birth_date_match else None
+
+    if report_date:
+        metadata["Report_Date"] = report_date.isoformat()
+    if birth_date:
+        metadata["Birth_Date"] = birth_date.isoformat()
+
+    age = calculate_age(birth_date, report_date)
+    if pd.notna(age):
+        metadata["Age"] = int(age)
+
+    return metadata
 
 
 def extract_lab_values(text):
@@ -619,11 +907,13 @@ def extract_lab_values(text):
     return results
 
 
-def build_patient_dataframe(lab_values, gender="Female", age=22):
+def build_patient_dataframe(lab_values, gender="Female", age=22, weight_kg=np.nan, height_cm=np.nan):
     patient = {
         "Gender": gender,
         "Age": age,
 
+        "Weight_kg": weight_kg,
+        "Height_cm": height_cm,
         "BMI": np.nan,
         "Waist_Circumference_cm": np.nan,
         "BP_Systolic_mmHg": np.nan,
@@ -633,9 +923,25 @@ def build_patient_dataframe(lab_values, gender="Female", age=22):
         "HbA1c_Percent": np.nan,
         "Cholesterol_Total_mgdL": np.nan,
         "Cholesterol_LDL_mgdL": np.nan,
+        "Cholesterol_HDL_mgdL": np.nan,
         "Triglycerides_mgdL": np.nan,
         "Kidney_Creatinine_mgdL": np.nan,
+        "eGFR_ml_min_1_73m2": np.nan,
+        "Liver_ALT_UL": np.nan,
         "Liver_AST_UL": np.nan,
+        "CRP_mg_L": np.nan,
+        "Ferritin_ng_mL": np.nan,
+        "Folate_ng_mL": np.nan,
+        "Calcium_mg_dL": np.nan,
+        "Magnesium_mg_dL": np.nan,
+        "Urea_mgdL": np.nan,
+        "Vitamin_B12_pg_mL": np.nan,
+        "VitaminD_ng_mL": np.nan,
+        "Iron_ugdL": np.nan,
+        "Iron_Binding_Capacity_ugdL": np.nan,
+        "Sedimentation_mm_h": np.nan,
+        "Free_T3_pg_mL": np.nan,
+        "Free_T4_ng_dL": np.nan,
 
         "Daily_Fiber_g": np.nan,
         "Daily_Sugar_g": np.nan,
@@ -657,14 +963,26 @@ def build_patient_dataframe(lab_values, gender="Female", age=22):
     if pd.notna(patient["Hemoglobin_gdL"]) and patient["Hemoglobin_gdL"] > 30:
         patient["Hemoglobin_gdL"] = patient["Hemoglobin_gdL"] / 10
 
-    return pd.DataFrame([patient])
+    return enrich_anthropometrics(pd.DataFrame([patient]))
 
 
-def analyze_pdf_report(pdf_path, gender="Female", age=22):
+def analyze_pdf_report(pdf_path, gender="Female", age=22, weight_kg=np.nan, height_cm=np.nan):
     text = extract_pdf_text(pdf_path)
+    metadata = extract_patient_metadata(text)
     lab_values = extract_lab_values(text)
 
-    patient_df = build_patient_dataframe(lab_values, gender=gender, age=age)
+    gender = metadata.get("Gender", gender)
+    age = metadata.get("Age", age)
+    patient_df = build_patient_dataframe(
+        lab_values,
+        gender=gender,
+        age=age,
+        weight_kg=weight_kg,
+        height_cm=height_cm,
+    )
+    for key in ["Report_Date", "Birth_Date"]:
+        if key in metadata:
+            patient_df[key] = metadata[key]
 
     patient_df = apply_risk_engine(patient_df)
 
@@ -676,7 +994,12 @@ def analyze_pdf_report(pdf_path, gender="Female", age=22):
         "Foods_To_Limit"
     ]] = patient_df.apply(generate_recommendations, axis=1)
 
-    return patient_df, lab_values, text
+    extracted_values = {**metadata, **lab_values}
+    for column in ["Weight_kg", "Height_cm", "BMI"]:
+        value = patient_df.loc[0, column] if column in patient_df.columns else np.nan
+        if pd.notna(value):
+            extracted_values[column] = value
+    return patient_df, extracted_values, text
 
 
 # =========================================================

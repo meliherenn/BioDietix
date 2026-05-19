@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "333229965336",
+    "project_id": "biodietix-ab614",
+    "storage_bucket": "biodietix-ab614.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:333229965336:android:ffddec4e380de12406436d",
+        "android_client_info": {
+          "package_name": "com.biodietix.biodietix_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChS_utWZCruMmStbsBxmzpiM0JnNw-e4w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
