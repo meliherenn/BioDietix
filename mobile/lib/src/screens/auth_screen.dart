@@ -154,12 +154,13 @@ class _AuthScreenState extends State<AuthScreen> {
     return Scaffold(
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(18),
+          padding: pagePadding,
           children: [
             HeroPanel(
               kicker: strings.t('biodietixMobile'),
               title: strings.t('authHeroTitle'),
               subtitle: strings.t('authHeroSubtitle'),
+              icon: Icons.verified_user_rounded,
             ),
             if (!widget.firebaseReady)
               AppCard(

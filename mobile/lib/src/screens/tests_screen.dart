@@ -113,11 +113,16 @@ class _TestsScreenState extends State<TestsScreen> {
   Widget build(BuildContext context) {
     final strings = AppScope.of(context).strings;
     return ListView(
-      padding: const EdgeInsets.all(18),
+      padding: pagePadding,
       children: [
-        AppCard(
+        HeroPanel(
+          kicker: strings.t('biodietixMobile'),
           title: strings.t('tests'),
           subtitle: strings.t('testsSubtitle'),
+          icon: Icons.science_rounded,
+        ),
+        AppCard(
+          title: strings.t('labReports'),
           child: Column(
             children: [
               if (!_serverReady)

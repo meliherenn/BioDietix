@@ -213,11 +213,16 @@ class _ScanScreenState extends State<ScanScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(18),
+      padding: pagePadding,
       children: [
-        AppCard(
+        HeroPanel(
+          kicker: strings.t('biodietixMobile'),
           title: strings.t('productScanner'),
           subtitle: strings.t('productScannerSubtitle'),
+          icon: Icons.qr_code_scanner_rounded,
+        ),
+        AppCard(
+          title: strings.t('barcodeLookup'),
           child: Column(
             children: [
               if (!_serverReady)
@@ -430,63 +435,163 @@ class _EvaluationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppScope.of(context).strings;
     final color = switch (evaluation.decision) {
-      'not_recommended' => const Color(0xFFB42318),
-      'use_with_caution' => const Color(0xFFA16207),
+      'not_recommended' => danger,
+      'use_with_caution' => amber,
       _ => green,
     };
+    final icon = switch (evaluation.decision) {
+      'not_recommended' => Icons.block_rounded,
+      'use_with_caution' => Icons.warning_rounded,
+      _ => Icons.check_circle_rounded,
+    };
+
     return AppCard(
       title: strings.t('decision'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              strings.decision(evaluation.decision),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
+              color: color.withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark
+                    ? .20
+                    : .10,
               ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: color.withValues(alpha: .34)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 23),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    strings.decision(evaluation.decision),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: 19,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : ink,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           if (evaluation.reasons.isNotEmpty) ...[
             const SizedBox(height: 14),
-            Text(
-              strings.t('reasons').toUpperCase(),
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-            ...evaluation.reasons.map(
-              (reason) => Text('- ${strings.reason(reason)}'),
+            _EvaluationSection(
+              title: strings.t('reasons'),
+              icon: Icons.rule_rounded,
+              accent: color,
+              items: evaluation.reasons.map(strings.reason).toList(),
             ),
           ],
           if (evaluation.positives.isNotEmpty) ...[
             const SizedBox(height: 14),
-            Text(
-              strings.t('positiveSignals').toUpperCase(),
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-            ...evaluation.positives.map(
-              (item) => Text('- ${strings.positive(item)}'),
+            _EvaluationSection(
+              title: strings.t('positiveSignals'),
+              icon: Icons.trending_up_rounded,
+              accent: green,
+              items: evaluation.positives.map(strings.positive).toList(),
             ),
           ],
           if (evaluation.alternatives.isNotEmpty) ...[
             const SizedBox(height: 14),
-            Text(
-              strings.t('betterAlternatives').toUpperCase(),
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-            ...evaluation.alternatives.map(
-              (item) => Text('- ${strings.alternative(item)}'),
+            _EvaluationSection(
+              title: strings.t('betterAlternatives'),
+              icon: Icons.swap_horiz_rounded,
+              accent: violet,
+              items: evaluation.alternatives.map(strings.alternative).toList(),
             ),
           ],
           const SizedBox(height: 12),
-          Text(
-            strings.t('educationalOnly'),
-            style: TextStyle(color: appMutedColor(context)),
+          NoticeBox(
+            message: strings.t('educationalOnly'),
+            warning: evaluation.decision != 'recommended',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EvaluationSection extends StatelessWidget {
+  const _EvaluationSection({
+    required this.title,
+    required this.icon,
+    required this.accent,
+    required this.items,
+  });
+
+  final String title;
+  final IconData icon;
+  final Color accent;
+  final List<String> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: appSecondaryFill(context),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: appLineColor(context)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: accent, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title.toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    margin: const EdgeInsets.only(top: 8, right: 10),
+                    decoration: BoxDecoration(
+                      color: accent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      item,
+                      style: const TextStyle(
+                        height: 1.35,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

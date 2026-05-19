@@ -7,6 +7,11 @@ const gold = Color(0xFFD6B66D);
 const background = Color(0xFFF5F7F2);
 const line = Color(0xFFD8E2DC);
 const muted = Color(0xFF61716A);
+const danger = Color(0xFFB42318);
+const amber = Color(0xFFA16207);
+const violet = Color(0xFF7C3AED);
+
+const pagePadding = EdgeInsets.fromLTRB(18, 18, 18, 118);
 
 bool _dark(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark;
@@ -47,16 +52,16 @@ class AppCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: appCardColor(context),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: appLineColor(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: _dark(context) ? .22 : .08),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: _dark(context) ? .28 : .07),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -88,12 +93,14 @@ class HeroPanel extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.kicker = 'BIODIETIX',
+    this.icon,
     super.key,
   });
 
   final String kicker;
   final String title;
   final String subtitle;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -102,19 +109,37 @@ class HeroPanel extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: deepGreen,
-        borderRadius: BorderRadius.circular(26),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF124A40), Color(0xFF09221D)],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white10),
         boxShadow: [
           BoxShadow(
             color: deepGreen.withValues(alpha: _dark(context) ? .35 : .22),
-            blurRadius: 24,
-            offset: const Offset(0, 14),
+            blurRadius: 30,
+            offset: const Offset(0, 18),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (icon != null) ...[
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+            const SizedBox(height: 16),
+          ],
           Text(
             kicker,
             style: const TextStyle(
@@ -129,7 +154,7 @@ class HeroPanel extends StatelessWidget {
             title,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 29,
+              fontSize: 28,
               height: 1.13,
               fontWeight: FontWeight.w900,
             ),
@@ -213,7 +238,7 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 50,
+      height: 52,
       child: FilledButton(
         style: FilledButton.styleFrom(
           backgroundColor: secondary ? appSecondaryFill(context) : green,
@@ -223,7 +248,7 @@ class AppButton extends StatelessWidget {
               : const Color(0xFFE0E7E2),
           disabledForegroundColor: appMutedColor(context),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             side: secondary
                 ? BorderSide(color: appLineColor(context))
                 : BorderSide.none,

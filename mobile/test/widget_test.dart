@@ -96,8 +96,16 @@ void main() {
       ),
     );
 
-    await tester.ensureVisible(find.text('Save profile to phone'));
-    await tester.tap(find.text('Save profile to phone'));
+    final saveButton = find
+        .widgetWithText(FilledButton, 'Save profile to phone')
+        .first;
+    await tester.scrollUntilVisible(
+      saveButton,
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(saveButton);
     await tester.pumpAndSettle();
 
     expect(saved, isTrue);

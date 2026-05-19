@@ -122,11 +122,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final strings = AppScope.of(context).strings;
     return ListView(
-      padding: const EdgeInsets.all(18),
+      padding: pagePadding,
       children: [
-        AppCard(
+        HeroPanel(
+          kicker: strings.t('biodietixMobile'),
           title: strings.t('profile'),
           subtitle: strings.t('profileSubtitle'),
+          icon: Icons.person_rounded,
+        ),
+        AppCard(
+          title: strings.t('personalDetails'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

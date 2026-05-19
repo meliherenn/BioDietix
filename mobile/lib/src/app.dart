@@ -180,10 +180,15 @@ class _BioDietixAppState extends State<BioDietixApp> {
       scaffoldBackgroundColor: isDark ? const Color(0xFF071310) : background,
       colorScheme: scheme,
       navigationBarTheme: NavigationBarThemeData(
+        height: 82,
+        elevation: 0,
         backgroundColor: isDark ? const Color(0xFF0C1A17) : Colors.white,
         indicatorColor: isDark
             ? const Color(0xFF1E4C43)
             : const Color(0xFFCDEDE7),
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
         labelTextStyle: WidgetStateProperty.all(
           TextStyle(color: textColor, fontWeight: FontWeight.w700),
         ),
@@ -204,22 +209,30 @@ class _BioDietixAppState extends State<BioDietixApp> {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark ? const Color(0xFF0A1815) : const Color(0xFFF9FBF7),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 15,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(
             color: isDark ? const Color(0xFF26423A) : const Color(0xFFCFDAD3),
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(
             color: isDark ? const Color(0xFF26423A) : const Color(0xFFCFDAD3),
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           borderSide: const BorderSide(color: green, width: 1.5),
         ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

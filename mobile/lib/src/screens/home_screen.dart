@@ -18,44 +18,23 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppScope.of(context).strings;
     return ListView(
-      padding: const EdgeInsets.all(18),
+      padding: pagePadding,
       children: [
         HeroPanel(
           kicker: strings.t('personalNutritionEngine'),
           title: strings.t('homeHeroTitle'),
           subtitle: strings.t('homeHeroSubtitle'),
+          icon: Icons.monitor_heart_rounded,
         ),
-        AppCard(
-          title: strings.t('currentProfile'),
-          child: profileMemory == null
-              ? Text(strings.t('noBloodAnalyzed'))
-              : _ProfileSummary(memory: profileMemory!),
-        ),
-        if (extractedValues != null)
+        if (profileMemory == null)
           AppCard(
-            title: strings.t('latestExtractedValues'),
-            child: Column(
-              children: extractedValues!.entries.take(12).map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 7),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          entry.key,
-                          style: TextStyle(color: appMutedColor(context)),
-                        ),
-                      ),
-                      Text(
-                        '${entry.value}',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
+            title: strings.t('currentProfile'),
+            child: Text(strings.t('noBloodAnalyzed')),
+          )
+        else
+          _ProfileSummary(memory: profileMemory!),
+        if (extractedValues != null)
+          _ExtractedValuesCard(values: extractedValues!),
       ],
     );
   }
@@ -72,95 +51,159 @@ class _ProfileSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _InsightCard(
-          icon: Icons.favorite_rounded,
+        _ProfileBanner(
           label: strings.t('healthProfile'),
           value: strings.profileText(memory.healthProfile),
-          accent: green,
         ),
-        _InsightCard(
-          icon: Icons.restaurant_menu_rounded,
+        _RecommendationPanel(
           label: strings.t('nutritionRecommendation'),
           value: strings.foodText(memory.nutritionRecommendation),
-          accent: gold,
         ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _FoodListCard(
-                icon: Icons.add_circle_rounded,
-                label: strings.t('foodsToIncrease'),
-                foods: memory.foodsToIncrease,
-                accent: green,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _FoodListCard(
-                icon: Icons.remove_circle_rounded,
-                label: strings.t('foodsToLimit'),
-                foods: memory.foodsToLimit,
-                accent: const Color(0xFFB42318),
-              ),
-            ),
-          ],
+        _FoodSection(
+          icon: Icons.add_rounded,
+          label: strings.t('foodsToIncrease'),
+          foods: memory.foodsToIncrease,
+          accent: green,
+        ),
+        _FoodSection(
+          icon: Icons.remove_rounded,
+          label: strings.t('foodsToLimit'),
+          foods: memory.foodsToLimit,
+          accent: danger,
         ),
         if (memory.allergies.isNotEmpty)
-          _FoodListCard(
+          _FoodSection(
             icon: Icons.shield_rounded,
             label: strings.t('allergies'),
             foods: memory.allergies.map(strings.allergy).toList(),
-            accent: const Color(0xFF7C3AED),
+            accent: violet,
           ),
       ],
     );
   }
 }
 
-class _InsightCard extends StatelessWidget {
-  const _InsightCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.accent,
-  });
+class _ProfileBanner extends StatelessWidget {
+  const _ProfileBanner({required this.label, required this.value});
 
-  final IconData icon;
   final String label;
   final String value;
-  final Color accent;
 
   @override
   Widget build(BuildContext context) {
     final strings = AppScope.of(context).strings;
-    final text = value.isEmpty ? strings.t('notAvailable') : value;
+    final text = value.trim().isEmpty ? strings.t('notAvailable') : value;
+
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: accent.withValues(
-          alpha: Theme.of(context).brightness == Brightness.dark ? .16 : .10,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: Theme.of(context).brightness == Brightness.dark
+              ? const [Color(0xFF0F3F37), Color(0xFF10231F)]
+              : const [Color(0xFFE8F7F1), Colors.white],
         ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accent.withValues(alpha: .34)),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: green.withValues(alpha: .32)),
+        boxShadow: [
+          BoxShadow(
+            color: green.withValues(alpha: .12),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: green,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: green.withValues(alpha: .28),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.favorite_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  text,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontSize: 18, height: 1.25),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecommendationPanel extends StatelessWidget {
+  const _RecommendationPanel({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppScope.of(context).strings;
+    final text = value.trim().isEmpty ? strings.t('notAvailable') : value;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF252A1E) : const Color(0xFFFFF9E8),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: gold.withValues(alpha: .42)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: BorderRadius.circular(13),
+                  color: gold,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(icon, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.restaurant_menu_rounded,
+                  color: ink,
+                  size: 23,
+                ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   label.toUpperCase(),
@@ -169,12 +212,14 @@ class _InsightCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Text(
             text,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontSize: 15,
+              height: 1.5,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -182,8 +227,8 @@ class _InsightCard extends StatelessWidget {
   }
 }
 
-class _FoodListCard extends StatelessWidget {
-  const _FoodListCard({
+class _FoodSection extends StatelessWidget {
+  const _FoodSection({
     required this.icon,
     required this.label,
     required this.foods,
@@ -202,23 +247,39 @@ class _FoodListCard extends StatelessWidget {
         .map(strings.foodText)
         .where((item) => item.trim().isNotEmpty)
         .toList();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: appSecondaryFill(context),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: appLineColor(context)),
+        color: isDark ? const Color(0xFF10231F) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accent.withValues(alpha: .24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? .24 : .06),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: accent, size: 20),
-              const SizedBox(width: 7),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: isDark ? .22 : .12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: accent, size: 22),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   label.toUpperCase(),
@@ -227,31 +288,30 @@ class _FoodListCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           if (items.isEmpty)
             Text(strings.t('notAvailable'))
           else
             Wrap(
-              spacing: 6,
-              runSpacing: 6,
+              spacing: 8,
+              runSpacing: 8,
               children: items.map((item) {
                 return Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
+                    horizontal: 13,
+                    vertical: 9,
                   ),
                   decoration: BoxDecoration(
-                    color: accent.withValues(alpha: .12),
+                    color: accent.withValues(alpha: isDark ? .18 : .09),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: accent.withValues(alpha: .28)),
+                    border: Border.all(color: accent.withValues(alpha: .24)),
                   ),
                   child: Text(
                     item,
                     style: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : ink,
-                      fontSize: 12,
+                      color: isDark ? Colors.white : ink,
+                      fontSize: 13,
+                      height: 1.15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -259,6 +319,53 @@ class _FoodListCard extends StatelessWidget {
               }).toList(),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _ExtractedValuesCard extends StatelessWidget {
+  const _ExtractedValuesCard({required this.values});
+
+  final Map<String, dynamic> values;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppScope.of(context).strings;
+    final entries = values.entries.take(12).toList();
+
+    return AppCard(
+      title: strings.t('latestExtractedValues'),
+      child: Column(
+        children: entries.map((entry) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            decoration: BoxDecoration(
+              color: appSecondaryFill(context),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: appLineColor(context)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    entry.key,
+                    style: TextStyle(
+                      color: appMutedColor(context),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '${entry.value}',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }

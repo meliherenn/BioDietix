@@ -64,12 +64,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final strings = AppScope.of(context).strings;
     return ListView(
-      padding: const EdgeInsets.all(18),
+      padding: pagePadding,
       children: [
-        AppCard(
+        HeroPanel(
+          kicker: strings.t('biodietixMobile'),
           title: strings.t('settings'),
           subtitle: strings.t('settingsSubtitle'),
-          child: const SizedBox.shrink(),
+          icon: Icons.tune_rounded,
         ),
         AppCard(
           title: strings.t('language'),

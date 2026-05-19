@@ -192,6 +192,7 @@ const _values = {
     'notAvailable': 'Not available',
     'profileSubtitle':
         'Saved on this phone after sign-in. Health files stay available until you replace or delete them.',
+    'personalDetails': 'Personal details',
     'gender': 'Gender',
     'female': 'Female',
     'male': 'Male',
@@ -209,6 +210,7 @@ const _values = {
     'signOut': 'Sign out',
     'testsSubtitle':
         'Upload a blood test PDF to refresh the current profile. Upload allergy PDF if available.',
+    'labReports': 'Lab reports',
     'uploadBloodPdf': 'Upload blood test PDF',
     'uploadAllergyPdf': 'Upload allergy test PDF',
     'currentAllergies': 'Current allergies',
@@ -223,6 +225,7 @@ const _values = {
     'productScanner': 'Product scanner',
     'productScannerSubtitle':
         'Scan a market product and evaluate it against the latest blood/allergy profile.',
+    'barcodeLookup': 'Barcode lookup',
     'bloodRequired':
         'Blood test profile required before personal product checks.',
     'openCameraScanner': 'Open camera scanner',
@@ -379,6 +382,7 @@ const _values = {
     'notAvailable': 'Mevcut değil',
     'profileSubtitle':
         'Girişten sonra bu telefonda saklanır. Sağlık dosyaları değiştirene veya silene kadar korunur.',
+    'personalDetails': 'Kişisel bilgiler',
     'gender': 'Cinsiyet',
     'female': 'Kadın',
     'male': 'Erkek',
@@ -396,6 +400,7 @@ const _values = {
     'signOut': 'Çıkış yap',
     'testsSubtitle':
         'Güncel profili yenilemek için kan testi PDF’i yükle. Varsa alerji PDF’i de ekle.',
+    'labReports': 'Laboratuvar raporları',
     'uploadBloodPdf': 'Kan testi PDF’i yükle',
     'uploadAllergyPdf': 'Alerji testi PDF’i yükle',
     'currentAllergies': 'Güncel alerjiler',
@@ -411,6 +416,7 @@ const _values = {
     'productScanner': 'Ürün tarayıcı',
     'productScannerSubtitle':
         'Market ürününü tara ve son kan/alerji profiline göre değerlendir.',
+    'barcodeLookup': 'Barkod arama',
     'bloodRequired':
         'Kişisel ürün kontrolü için önce kan testi profili gerekir.',
     'openCameraScanner': 'Kamera tarayıcıyı aç',
@@ -554,11 +560,30 @@ const _profileReplacements = {
 const _foodReplacements = {
   'For this age group, build long-term habits with regular meals, adequate protein, fiber, and physical activity.':
       'Bu yaş grubu için düzenli öğünler, yeterli protein, lif ve fiziksel aktiviteyle uzun vadeli alışkanlıklar oluştur.',
+  'Thyroid-related lab changes should be reviewed with a healthcare professional; this is not a medical diagnosis.':
+      'Tiroidle ilişkili laboratuvar değişiklikleri bir sağlık profesyoneliyle değerlendirilmelidir; bu tıbbi teşhis değildir.',
+  'Support thyroid-related metabolism with':
+      'Tiroidle ilişkili metabolizmayı desteklemek için',
+  'regular meal patterns': 'düzenli öğün düzeni',
+  'adequate protein': 'yeterli protein',
+  'physical activity': 'fiziksel aktivite',
+  'selenium-rich foods': 'selenyumdan zengin besinler',
+  'very low-calorie diets': 'çok düşük kalorili diyetler',
+  'ultra-processed foods': 'aşırı işlenmiş gıdalar',
+  'excess sugar': 'fazla şeker',
   'balanced meals': 'dengeli öğünler',
   'lean protein': 'yağsız protein',
   'whole grains': 'tam tahıllar',
   'vegetables': 'sebzeler',
   'fruits': 'meyveler',
+  'eggs': 'yumurta',
+  'egg': 'yumurta',
+  'yogurt': 'yoğurt',
+  'dairy products': 'süt ürünleri',
+  'selenium': 'selenyum',
+  'zinc': 'çinko',
+  'iodine': 'iyot',
+  'protein': 'protein',
   'frequent fast food': 'sık fast food tüketimi',
   'sugary drinks': 'şekerli içecekler',
   'meal skipping': 'öğün atlama',
@@ -567,6 +592,7 @@ const _foodReplacements = {
   'fish': 'balık',
   'avocado': 'avokado',
   'fiber-rich foods': 'lifli besinler',
+  'fiber': 'lif',
   'fresh vegetables': 'taze sebzeler',
   'water': 'su',
   'processed meats': 'işlenmiş etler',
