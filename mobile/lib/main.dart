@@ -2,10 +2,18 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'src/app.dart';
+import 'src/core/config/app_config.dart';
+import 'src/core/storage/hive_local_store.dart';
 import 'src/firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final config = AppConfig.fromEnvironment();
+  final localStore = HiveLocalStore();
+  await localStore.init();
+  final initialLanguage = await localStore.loadLanguage();
+  final initialThemeMode = await localStore.loadThemeMode();
 
   var firebaseReady = false;
   if (BiodietixFirebaseOptions.isConfigured) {
@@ -22,5 +30,13 @@ Future<void> main() async {
     }
   }
 
-  runApp(BioDietixApp(firebaseReady: firebaseReady));
+  runApp(
+    BioDietixApp(
+      config: config,
+      firebaseReady: firebaseReady,
+      localStore: localStore,
+      initialLanguage: initialLanguage,
+      initialThemeMode: initialThemeMode,
+    ),
+  );
 }

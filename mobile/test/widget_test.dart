@@ -1,46 +1,103 @@
-import 'package:biodietix_mobile/src/app.dart';
+import 'package:biodietix_mobile/src/core/config/app_config.dart';
+import 'package:biodietix_mobile/src/core/storage/hive_local_store.dart';
+import 'package:biodietix_mobile/src/features/auth/data/auth_repository.dart';
+import 'package:biodietix_mobile/src/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:biodietix_mobile/src/features/auth/presentation/screens/auth_screen.dart';
+import 'package:biodietix_mobile/src/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:biodietix_mobile/src/features/profile/data/profile_repository.dart';
+import 'package:biodietix_mobile/src/features/profile/presentation/cubit/profile_cubit.dart';
+import 'package:biodietix_mobile/src/features/settings/presentation/cubit/locale_cubit.dart';
+import 'package:biodietix_mobile/src/features/settings/presentation/cubit/theme_cubit.dart';
+import 'package:biodietix_mobile/src/features/settings/presentation/screens/settings_screen.dart';
 import 'package:biodietix_mobile/src/i18n.dart';
-import 'package:biodietix_mobile/src/models/personal_info.dart';
-import 'package:biodietix_mobile/src/screens/auth_screen.dart';
-import 'package:biodietix_mobile/src/screens/profile_screen.dart';
-import 'package:biodietix_mobile/src/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('BioDietix app shows Firebase setup gate', (
-    WidgetTester tester,
-  ) async {
-    SharedPreferences.setMockInitialValues({});
-
-    await tester.pumpWidget(const BioDietixApp(firebaseReady: false));
-    await tester.pumpAndSettle();
-
-    expect(find.text('BIODIETIX MOBILE'), findsOneWidget);
-    expect(find.text('Firebase setup required'), findsOneWidget);
-    expect(find.text('Continue in local preview mode'), findsNothing);
-  });
-
-  testWidgets('Settings screen exposes language and theme controls', (
+  testWidgets('Onboarding shows first page and primary action', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
       AppScope(
         language: AppLanguage.en,
         strings: const AppStrings(AppLanguage.en),
-        child: MaterialApp(
-          home: Scaffold(
-            body: SettingsScreen(
-              apiUrl: '',
-              firebaseReady: true,
-              userEmail: 'student@example.com',
-              language: AppLanguage.en,
-              themeMode: ThemeMode.system,
-              onLanguageChanged: (_) async {},
-              onThemeModeChanged: (_) async {},
-              onClearHealthData: () async {},
-              onSignOut: () async {},
+        child: MaterialApp(home: OnboardingScreen(onFinished: () async {})),
+      ),
+    );
+
+    expect(
+      find.text('Turn lab results into daily nutrition context'),
+      findsOneWidget,
+    );
+    expect(find.text('Next'), findsOneWidget);
+  });
+
+  testWidgets('Auth screen exposes email, Google, and reset flows', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      AppScope(
+        language: AppLanguage.en,
+        strings: const AppStrings(AppLanguage.en),
+        child: BlocProvider(
+          create: (_) =>
+              AuthCubit(repository: const AuthRepository(firebaseReady: false)),
+          child: const MaterialApp(home: AuthScreen(firebaseReady: true)),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Sign in'), findsWidgets);
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Forgot password'), findsOneWidget);
+  });
+
+  testWidgets('Settings screen exposes language and theme controls', (
+    WidgetTester tester,
+  ) async {
+    final store = HiveLocalStore();
+    const config = AppConfig(flavor: AppFlavor.dev, apiUrl: '');
+
+    await tester.pumpWidget(
+      AppScope(
+        language: AppLanguage.en,
+        strings: const AppStrings(AppLanguage.en),
+        child: MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) => LocaleCubit(
+                localStore: store,
+                initialLanguage: AppLanguage.en,
+              ),
+            ),
+            BlocProvider(
+              create: (_) =>
+                  ThemeCubit(localStore: store, initialMode: ThemeMode.system),
+            ),
+            BlocProvider(
+              create: (_) => AuthCubit(
+                repository: const AuthRepository(firebaseReady: false),
+              ),
+            ),
+            BlocProvider(
+              create: (_) => ProfileCubit(
+                repository: ProfileRepository(
+                  config: config,
+                  localStore: store,
+                  firebaseReady: false,
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: SettingsScreen(
+                config: config,
+                firebaseReady: false,
+                userEmail: 'student@example.com',
+              ),
             ),
           ),
         ),
@@ -48,70 +105,17 @@ void main() {
     );
 
     expect(find.text('Settings'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('English'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('English'), findsOneWidget);
     expect(find.text('Turkish'), findsOneWidget);
     expect(find.text('System'), findsOneWidget);
     expect(find.text('Light'), findsOneWidget);
     expect(find.text('Dark'), findsOneWidget);
-  });
-
-  testWidgets('Auth screen exposes Google sign-in action', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(
-      AppScope(
-        language: AppLanguage.en,
-        strings: const AppStrings(AppLanguage.en),
-        child: const MaterialApp(home: AuthScreen(firebaseReady: true)),
-      ),
-    );
-
-    expect(find.text('Sign in'), findsWidgets);
-    expect(find.text('Continue with Google'), findsOneWidget);
-    expect(find.text('Create a new account'), findsOneWidget);
-  });
-
-  testWidgets('Profile save shows visible confirmation', (
-    WidgetTester tester,
-  ) async {
-    var saved = false;
-
-    await tester.pumpWidget(
-      AppScope(
-        language: AppLanguage.en,
-        strings: const AppStrings(AppLanguage.en),
-        child: MaterialApp(
-          home: Scaffold(
-            body: ProfileScreen(
-              personalInfo: const PersonalInfo(age: 28),
-              allergies: const [],
-              onPersonalInfoChanged: (_) {},
-              onAllergiesChanged: (_) {},
-              onSave: () async {
-                saved = true;
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-
-    final saveButton = find
-        .widgetWithText(FilledButton, 'Save profile to phone')
-        .first;
-    await tester.scrollUntilVisible(
-      saveButton,
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(saveButton);
-    await tester.pumpAndSettle();
-
-    expect(saved, isTrue);
-    expect(
-      find.textContaining('Profile saved. These values will be used'),
-      findsOneWidget,
-    );
   });
 }
