@@ -1,43 +1,46 @@
 import 'package:flutter/material.dart';
 
-const ink = Color(0xFF151B18);
-const green = Color(0xFF11847A);
-const deepGreen = Color(0xFF0A2D28);
-const gold = Color(0xFFC7A45D);
-const background = Color(0xFFF7F7F3);
-const line = Color(0xFFE2E5DF);
-const muted = Color(0xFF6B746F);
+const ink = Color(0xFF242A20);
+const green = Color(0xFF2E7A55);
+const deepGreen = Color(0xFF173B2B);
+const sage = Color(0xFF9FAF73);
+const gold = Color(0xFFD7A84E);
+const cream = Color(0xFFFFF8EA);
+const blush = Color(0xFFFFE7D6);
+const background = Color(0xFFFFFBF3);
+const line = Color(0xFFE9DECE);
+const muted = Color(0xFF786F63);
 const danger = Color(0xFFB42318);
 const amber = Color(0xFFA16207);
-const violet = Color(0xFF7C3AED);
+const tomato = Color(0xFFE96D4E);
 
-const pagePadding = EdgeInsets.fromLTRB(18, 18, 18, 118);
+const pagePadding = EdgeInsets.fromLTRB(18, 20, 18, 118);
 
 bool _dark(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark;
 
 Color appBackground(BuildContext context) {
-  return _dark(context) ? const Color(0xFF050A09) : background;
+  return _dark(context) ? const Color(0xFF0D130F) : background;
 }
 
 Color appCardColor(BuildContext context) {
-  return _dark(context) ? const Color(0xFF101715) : Colors.white;
+  return _dark(context) ? const Color(0xFF182119) : const Color(0xFFFFFCF6);
 }
 
 Color appLineColor(BuildContext context) {
-  return _dark(context) ? const Color(0xFF26322F) : line;
+  return _dark(context) ? const Color(0xFF334333) : line;
 }
 
 Color appMutedColor(BuildContext context) {
-  return _dark(context) ? const Color(0xFFAAB5AF) : muted;
+  return _dark(context) ? const Color(0xFFC1B8A8) : muted;
 }
 
 Color appSecondaryFill(BuildContext context) {
-  return _dark(context) ? const Color(0xFF17211F) : const Color(0xFFF0F3EE);
+  return _dark(context) ? const Color(0xFF222C20) : const Color(0xFFF5EDDC);
 }
 
 Color appSecondaryText(BuildContext context) {
-  return _dark(context) ? const Color(0xFFE8EFEB) : deepGreen;
+  return _dark(context) ? const Color(0xFFF7EEDC) : deepGreen;
 }
 
 class AppCard extends StatelessWidget {
@@ -55,13 +58,13 @@ class AppCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: appCardColor(context),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: appLineColor(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: _dark(context) ? .20 : .045),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: _dark(context) ? .24 : .055),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -104,69 +107,89 @@ class HeroPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = _dark(context);
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: _dark(context) ? const Color(0xFF0D1816) : deepGreen,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: dark
+              ? const [Color(0xFF1D2D20), Color(0xFF102018)]
+              : const [Color(0xFF275A3F), Color(0xFF173B2B)],
+        ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: _dark(context)
-              ? const Color(0xFF223A35)
-              : Colors.white.withValues(alpha: .18),
+          color: dark
+              ? const Color(0xFF3D563E)
+              : const Color(0xFFB6C99D).withValues(alpha: .45),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: _dark(context) ? .22 : .10),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: deepGreen.withValues(alpha: dark ? .30 : .18),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          if (icon != null) ...[
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white24),
+          Positioned(
+            right: -24,
+            top: -28,
+            child: Icon(
+              Icons.eco_rounded,
+              color: Colors.white.withValues(alpha: .06),
+              size: 128,
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (icon != null) ...[
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: cream.withValues(alpha: .14),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: cream.withValues(alpha: .22)),
+                  ),
+                  child: Icon(icon, color: cream, size: 25),
+                ),
+                const SizedBox(height: 16),
+              ],
+              Text(
+                kicker,
+                style: const TextStyle(
+                  color: Color(0xFFEAD083),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0,
+                ),
               ),
-              child: Icon(icon, color: Colors.white, size: 24),
-            ),
-            const SizedBox(height: 16),
-          ],
-          Text(
-            kicker,
-            style: const TextStyle(
-              color: gold,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              height: 1.13,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              color: Color(0xFFDBE7E1),
-              height: 1.45,
-              fontSize: 15,
-            ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 27,
+                  height: 1.12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: Color(0xFFF0E7D5),
+                  height: 1.45,
+                  fontSize: 15,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -287,17 +310,17 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 50,
+      height: 52,
       child: FilledButton(
         style: FilledButton.styleFrom(
           backgroundColor: secondary ? appSecondaryFill(context) : green,
           foregroundColor: secondary ? appSecondaryText(context) : Colors.white,
           disabledBackgroundColor: _dark(context)
-              ? const Color(0xFF213A34)
-              : const Color(0xFFE0E7E2),
+              ? const Color(0xFF29372B)
+              : const Color(0xFFE5DAC9),
           disabledForegroundColor: appMutedColor(context),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(15),
             side: secondary
                 ? BorderSide(color: appLineColor(context))
                 : BorderSide.none,
@@ -335,8 +358,8 @@ class AppChip extends StatelessWidget {
       selected: selected,
       onSelected: (_) => onTap(),
       selectedColor: _dark(context)
-          ? const Color(0xFF183B36)
-          : const Color(0xFFE5F2EF),
+          ? const Color(0xFF2A412B)
+          : const Color(0xFFEAF3D9),
       checkmarkColor: _dark(context) ? Colors.white : green,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       side: BorderSide(color: selected ? green : appLineColor(context)),
@@ -357,7 +380,7 @@ class NoticeBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fill = warning
-        ? (_dark(context) ? const Color(0xFF3D2A12) : const Color(0xFFFFF8E8))
+        ? (_dark(context) ? const Color(0xFF3A2A16) : const Color(0xFFFFF2D7))
         : appSecondaryFill(context);
     final border = warning
         ? (_dark(context) ? const Color(0xFF8A661F) : const Color(0xFFE3C989))
@@ -369,7 +392,7 @@ class NoticeBox extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: border),
       ),
       child: Text(message),

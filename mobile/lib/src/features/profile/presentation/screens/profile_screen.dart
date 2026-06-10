@@ -112,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               kicker: strings.t('biodietixMobile'),
               title: strings.t('profile'),
               subtitle: strings.t('profileSubtitle'),
-              icon: Icons.person_rounded,
+              icon: Icons.spa_rounded,
             ),
             AppCard(
               title: strings.t('personalDetails'),

@@ -70,28 +70,28 @@ class _MainShellState extends State<MainShell> {
               onDestinationSelected: (value) => setState(() => _tab = value),
               destinations: [
                 NavigationDestination(
-                  icon: const Icon(Icons.home_outlined),
-                  selectedIcon: const Icon(Icons.home),
+                  icon: const Icon(Icons.restaurant_menu_outlined),
+                  selectedIcon: const Icon(Icons.restaurant_menu),
                   label: strings.t('home'),
                 ),
                 NavigationDestination(
-                  icon: const Icon(Icons.person_outline),
-                  selectedIcon: const Icon(Icons.person),
+                  icon: const Icon(Icons.spa_outlined),
+                  selectedIcon: const Icon(Icons.spa),
                   label: strings.t('profile'),
                 ),
                 NavigationDestination(
-                  icon: const Icon(Icons.science_outlined),
-                  selectedIcon: const Icon(Icons.science),
+                  icon: const Icon(Icons.assignment_outlined),
+                  selectedIcon: const Icon(Icons.assignment),
                   label: strings.t('tests'),
                 ),
                 NavigationDestination(
-                  icon: const Icon(Icons.qr_code_scanner),
-                  selectedIcon: const Icon(Icons.qr_code_2),
+                  icon: const Icon(Icons.shopping_basket_outlined),
+                  selectedIcon: const Icon(Icons.shopping_basket),
                   label: strings.t('scan'),
                 ),
                 NavigationDestination(
-                  icon: const Icon(Icons.settings_outlined),
-                  selectedIcon: const Icon(Icons.settings),
+                  icon: const Icon(Icons.tune_outlined),
+                  selectedIcon: const Icon(Icons.tune),
                   label: strings.t('settings'),
                 ),
               ],

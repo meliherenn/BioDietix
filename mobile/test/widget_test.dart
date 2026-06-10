@@ -26,10 +26,7 @@ void main() {
       ),
     );
 
-    expect(
-      find.text('Turn lab results into daily nutrition context'),
-      findsOneWidget,
-    );
+    expect(find.text('Build a balanced plate that fits you'), findsOneWidget);
     expect(find.text('Next'), findsOneWidget);
   });
 

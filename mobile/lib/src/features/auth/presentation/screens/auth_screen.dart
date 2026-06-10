@@ -69,7 +69,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   kicker: strings.t('biodietixMobile'),
                   title: strings.t('authHeroTitle'),
                   subtitle: strings.t('authHeroSubtitle'),
-                  icon: Icons.verified_user_rounded,
+                  icon: Icons.local_dining_rounded,
                 ),
                 if (!widget.firebaseReady)
                   AppCard(

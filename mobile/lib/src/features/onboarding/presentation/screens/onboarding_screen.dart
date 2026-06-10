@@ -43,17 +43,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final strings = AppScope.of(context).strings;
     final pages = [
       _OnboardingPage(
-        icon: Icons.monitor_heart_rounded,
+        icon: Icons.restaurant_menu_rounded,
         title: strings.t('onboardLabsTitle'),
         body: strings.t('onboardLabsBody'),
       ),
       _OnboardingPage(
-        icon: Icons.qr_code_scanner_rounded,
+        icon: Icons.shopping_basket_rounded,
         title: strings.t('onboardScanTitle'),
         body: strings.t('onboardScanBody'),
       ),
       _OnboardingPage(
-        icon: Icons.cloud_done_rounded,
+        icon: Icons.bookmark_added_rounded,
         title: strings.t('onboardOfflineTitle'),
         body: strings.t('onboardOfflineBody'),
       ),
@@ -127,11 +127,19 @@ class _OnboardingPage extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [green, deepGreen],
+              colors: [sage, green, deepGreen],
             ),
-            borderRadius: BorderRadius.circular(34),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: cream.withValues(alpha: .32)),
+            boxShadow: [
+              BoxShadow(
+                color: green.withValues(alpha: .20),
+                blurRadius: 32,
+                offset: const Offset(0, 18),
+              ),
+            ],
           ),
-          child: Icon(icon, size: 58, color: Colors.white),
+          child: Icon(icon, size: 58, color: cream),
         ),
         const SizedBox(height: 30),
         Text(

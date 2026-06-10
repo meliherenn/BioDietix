@@ -21,7 +21,7 @@ class HomeScreen extends StatelessWidget {
           kicker: strings.t('personalNutritionEngine'),
           title: strings.t('homeHeroTitle'),
           subtitle: strings.t('homeHeroSubtitle'),
-          icon: Icons.monitor_heart_rounded,
+          icon: Icons.restaurant_rounded,
         ),
         BlocBuilder<ProfileCubit, ProfileState>(
           builder: (context, state) {

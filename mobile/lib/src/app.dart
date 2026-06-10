@@ -116,24 +116,29 @@ class BioDietixApp extends StatelessWidget {
     final scheme = ColorScheme.fromSeed(
       seedColor: green,
       brightness: brightness,
+      primary: green,
+      secondary: gold,
+      surface: isDark ? const Color(0xFF182119) : const Color(0xFFFFFCF6),
     );
-    final textColor = isDark ? const Color(0xFFECEFEC) : ink;
-    final labelColor = isDark ? const Color(0xFFAAB5AF) : muted;
+    final textColor = isDark ? const Color(0xFFF7F0E2) : ink;
+    final labelColor = isDark ? const Color(0xFFC1B8A8) : muted;
 
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
-      scaffoldBackgroundColor: isDark ? const Color(0xFF050A09) : background,
+      scaffoldBackgroundColor: isDark ? const Color(0xFF0D130F) : background,
       colorScheme: scheme,
       navigationBarTheme: NavigationBarThemeData(
-        height: 76,
+        height: 78,
         elevation: 0,
-        backgroundColor: isDark ? const Color(0xFF07100E) : Colors.white,
+        backgroundColor: isDark
+            ? const Color(0xFF111911)
+            : const Color(0xFFFFFCF6),
         indicatorColor: isDark
-            ? const Color(0xFF183B36)
-            : const Color(0xFFD8EEEA),
+            ? const Color(0xFF2A412B)
+            : const Color(0xFFEAF3D9),
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
         ),
         labelTextStyle: WidgetStateProperty.all(
           TextStyle(color: textColor, fontWeight: FontWeight.w700),
@@ -142,40 +147,41 @@ class BioDietixApp extends StatelessWidget {
       textTheme: TextTheme(
         titleLarge: TextStyle(
           color: textColor,
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
+          fontSize: 21,
+          fontWeight: FontWeight.w900,
         ),
         labelSmall: TextStyle(
           color: labelColor,
           fontSize: 12,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w900,
           letterSpacing: 0,
         ),
-        bodyMedium: TextStyle(color: textColor, height: 1.4),
+        bodyMedium: TextStyle(color: textColor, height: 1.45),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? const Color(0xFF0D1412) : const Color(0xFFFAFBF8),
+        fillColor: isDark ? const Color(0xFF111A13) : const Color(0xFFFFF8EA),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 15,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide(
-            color: isDark ? const Color(0xFF26322F) : const Color(0xFFD9DED6),
+            color: isDark ? const Color(0xFF334333) : const Color(0xFFE5D8C5),
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide(
-            color: isDark ? const Color(0xFF26322F) : const Color(0xFFD9DED6),
+            color: isDark ? const Color(0xFF334333) : const Color(0xFFE5D8C5),
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(15),
           borderSide: const BorderSide(color: green, width: 1.5),
         ),
+        hintStyle: TextStyle(color: labelColor),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,

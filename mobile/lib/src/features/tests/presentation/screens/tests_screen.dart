@@ -115,7 +115,7 @@ class _TestsScreenState extends State<TestsScreen> {
               kicker: strings.t('biodietixMobile'),
               title: strings.t('tests'),
               subtitle: strings.t('testsSubtitle'),
-              icon: Icons.science_rounded,
+              icon: Icons.assignment_rounded,
             ),
             AppCard(
               title: strings.t('labReports'),

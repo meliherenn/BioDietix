@@ -218,7 +218,7 @@ class _ScanScreenState extends State<ScanScreen> {
               kicker: strings.t('biodietixMobile'),
               title: strings.t('productScanner'),
               subtitle: strings.t('productScannerSubtitle'),
-              icon: Icons.qr_code_scanner_rounded,
+              icon: Icons.shopping_basket_rounded,
             ),
             AppCard(
               title: strings.t('barcodeLookup'),

@@ -82,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           kicker: strings.t('biodietixMobile'),
           title: strings.t('settings'),
           subtitle: strings.t('settingsSubtitle'),
-          icon: Icons.tune_rounded,
+          icon: Icons.eco_rounded,
         ),
         BlocBuilder<ProfileCubit, ProfileState>(
           builder: (context, state) {
