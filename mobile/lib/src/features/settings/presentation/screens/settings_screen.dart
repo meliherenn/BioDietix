@@ -73,6 +73,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = AppScope.of(context).strings;
+    final isDev = widget.config.flavor == AppFlavor.dev;
+    final apiConfigured = BioDietixApi.isConfiguredUrl(widget.config.apiUrl);
     return ListView(
       padding: pagePadding,
       children: [
@@ -213,40 +215,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         AppCard(
-          title: strings.t('server'),
-          subtitle: strings.t('serverSubtitle'),
+          title: strings.t('cloudService'),
+          subtitle: strings.t('cloudServiceSubtitle'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                strings.t('flavor').toUpperCase(),
-                style: Theme.of(context).textTheme.labelSmall,
+              _ConnectionStatusRow(
+                online: apiConfigured,
+                label: apiConfigured
+                    ? strings.t('serviceReady')
+                    : strings.t('serviceUnavailable'),
               ),
-              const SizedBox(height: 6),
-              Text(widget.config.flavor.value),
-              const SizedBox(height: 14),
-              Text(
-                strings.t('productionApiUrl').toUpperCase(),
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-              const SizedBox(height: 6),
-              SelectableText(
-                !BioDietixApi.isConfiguredUrl(widget.config.apiUrl)
-                    ? strings.t('notConfigured')
-                    : widget.config.apiUrl,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 14),
-              if (!BioDietixApi.isConfiguredUrl(widget.config.apiUrl))
+              if (isDev) ...[
+                const SizedBox(height: 14),
+                Text(
+                  strings.t('flavor').toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+                const SizedBox(height: 6),
+                Text(widget.config.flavor.value),
+                const SizedBox(height: 14),
+                Text(
+                  strings.t('serviceEndpoint').toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+                const SizedBox(height: 6),
+                SelectableText(
+                  apiConfigured
+                      ? widget.config.apiUrl
+                      : strings.t('notConfigured'),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+              if (!apiConfigured) ...[
+                const SizedBox(height: 14),
                 NoticeBox(
                   message: strings.t('serverNotConfigured'),
                   warning: true,
                 ),
+              ],
+              const SizedBox(height: 14),
               AppButton(
                 label: strings.t('checkApiConnection'),
-                onPressed: BioDietixApi.isConfiguredUrl(widget.config.apiUrl)
-                    ? _checkApi
-                    : null,
+                onPressed: apiConfigured ? _checkApi : null,
                 secondary: true,
                 busy: _busy,
               ),
@@ -273,6 +284,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ConnectionStatusRow extends StatelessWidget {
+  const _ConnectionStatusRow({required this.online, required this.label});
+
+  final bool online;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = online ? green : amber;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? .16 : .08,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: .28)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            online ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+            color: color,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

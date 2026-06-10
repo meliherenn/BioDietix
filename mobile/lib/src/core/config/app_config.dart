@@ -12,6 +12,8 @@ enum AppFlavor {
 }
 
 class AppConfig {
+  static const defaultApiUrl = 'https://biodietix-ml.onrender.com';
+
   const AppConfig({required this.flavor, required this.apiUrl});
 
   factory AppConfig.fromEnvironment() {
@@ -19,7 +21,10 @@ class AppConfig {
       flavor: AppFlavor.fromValue(
         const String.fromEnvironment('FLAVOR', defaultValue: 'dev'),
       ),
-      apiUrl: const String.fromEnvironment('BIODIETIX_API_URL'),
+      apiUrl: const String.fromEnvironment(
+        'BIODIETIX_API_URL',
+        defaultValue: defaultApiUrl,
+      ),
     );
   }
 

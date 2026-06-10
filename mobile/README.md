@@ -16,14 +16,14 @@ Installable Android app for BioDietix.
 
 ## Required production services
 
-This APK is not self-contained. A physical phone cannot reach a developer laptop
-address such as `127.0.0.1`, emulator-only addresses, or private LAN addresses
-when another user installs the APK.
+The production app connects to the hosted BioDietix API automatically. A user
+who installs the app does not need to configure an API address.
 
 Before building an APK for other users, provide:
 
 - A Firebase project with Email/Password and Google Authentication enabled.
-- A deployed BioDietix FastAPI backend with a public HTTPS URL.
+- A deployed BioDietix FastAPI backend with a public HTTPS URL. The default
+  production endpoint is already embedded in the app.
 
 The app intentionally has no preview/offline-login mode. If Firebase is not
 configured, users see a setup-required screen instead of bypassing login.
@@ -38,7 +38,7 @@ source .venv/bin/activate
 uvicorn api:app --host 0.0.0.0 --port 8000
 ```
 
-Production APK builds must use an HTTPS URL:
+The app has this production HTTPS URL built in by default:
 
 ```json
 {
@@ -80,7 +80,7 @@ Copy the API define template:
 cp firebase_defines.example.json firebase_defines.json
 ```
 
-Fill `firebase_defines.json` with the deployed BioDietix API URL:
+`firebase_defines.json` can override the API URL for development builds:
 
 ```json
 {
@@ -94,7 +94,7 @@ Firebase is read from `android/app/google-services.json` for Android builds.
 
 ```bash
 flutter pub get
-flutter run --dart-define-from-file=firebase_defines.json
+flutter run --flavor dev --dart-define=FLAVOR=dev
 ```
 
 ## Build APK
@@ -102,13 +102,19 @@ flutter run --dart-define-from-file=firebase_defines.json
 Debug APK:
 
 ```bash
-flutter build apk --debug --dart-define-from-file=firebase_defines.json
+flutter build apk --debug --flavor dev --dart-define=FLAVOR=dev
 ```
 
 Release APK:
 
 ```bash
-flutter build apk --release --dart-define-from-file=firebase_defines.json
+flutter build apk --release --flavor prod --dart-define=FLAVOR=prod
+```
+
+Play Store app bundle:
+
+```bash
+flutter build appbundle --release --flavor prod --dart-define=FLAVOR=prod
 ```
 
 Output:

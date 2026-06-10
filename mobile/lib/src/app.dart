@@ -117,23 +117,23 @@ class BioDietixApp extends StatelessWidget {
       seedColor: green,
       brightness: brightness,
     );
-    final textColor = isDark ? const Color(0xFFE9F2EE) : ink;
-    final labelColor = isDark ? const Color(0xFF9CB0A8) : muted;
+    final textColor = isDark ? const Color(0xFFECEFEC) : ink;
+    final labelColor = isDark ? const Color(0xFFAAB5AF) : muted;
 
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
-      scaffoldBackgroundColor: isDark ? const Color(0xFF071310) : background,
+      scaffoldBackgroundColor: isDark ? const Color(0xFF050A09) : background,
       colorScheme: scheme,
       navigationBarTheme: NavigationBarThemeData(
-        height: 82,
+        height: 76,
         elevation: 0,
-        backgroundColor: isDark ? const Color(0xFF0C1A17) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF07100E) : Colors.white,
         indicatorColor: isDark
-            ? const Color(0xFF1E4C43)
-            : const Color(0xFFCDEDE7),
+            ? const Color(0xFF183B36)
+            : const Color(0xFFD8EEEA),
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(16),
         ),
         labelTextStyle: WidgetStateProperty.all(
           TextStyle(color: textColor, fontWeight: FontWeight.w700),
@@ -143,36 +143,37 @@ class BioDietixApp extends StatelessWidget {
         titleLarge: TextStyle(
           color: textColor,
           fontSize: 20,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w800,
         ),
         labelSmall: TextStyle(
           color: labelColor,
           fontSize: 12,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0,
         ),
         bodyMedium: TextStyle(color: textColor, height: 1.4),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? const Color(0xFF0A1815) : const Color(0xFFF9FBF7),
+        fillColor: isDark ? const Color(0xFF0D1412) : const Color(0xFFFAFBF8),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 15,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: isDark ? const Color(0xFF26423A) : const Color(0xFFCFDAD3),
+            color: isDark ? const Color(0xFF26322F) : const Color(0xFFD9DED6),
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: isDark ? const Color(0xFF26423A) : const Color(0xFFCFDAD3),
+            color: isDark ? const Color(0xFF26322F) : const Color(0xFFD9DED6),
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: green, width: 1.5),
         ),
       ),

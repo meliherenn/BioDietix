@@ -140,8 +140,9 @@ class AppScope extends InheritedWidget {
 const _values = {
   AppLanguage.en: {
     'appTitle': 'BioDietix',
-    'splashSubtitle': 'Personal nutrition from labs, allergies, and food data.',
-    'splashChecking': 'Checking internet, session, and local Hive data...',
+    'splashSubtitle':
+        'Gentle nutrition guidance shaped by your labs and daily choices.',
+    'splashChecking': 'Preparing your profile...',
     'onboardLabsTitle': 'Turn lab results into daily nutrition context',
     'onboardLabsBody':
         'Upload blood and allergy reports to build a profile that stays available on this phone.',
@@ -160,7 +161,7 @@ const _values = {
     'settings': 'Settings',
     'biodietixMobile': 'BIODIETIX MOBILE',
     'personalNutritionEngine': 'PERSONAL NUTRITION ENGINE',
-    'authHeroTitle': 'Personal nutrition decisions from your latest labs',
+    'authHeroTitle': 'A calmer way to understand your nutrition',
     'authHeroSubtitle':
         'Sign in securely, add your profile once, upload blood/allergy reports, then scan products in the market.',
     'firebaseMissingTitle': 'Firebase setup required',
@@ -196,7 +197,7 @@ const _values = {
     'wrongPassword': 'Email or password is incorrect.',
     'userNotFound': 'No account was found for this email.',
     'networkRequestFailed': 'Network connection failed. Try again.',
-    'homeHeroTitle': 'Scan food against your own labs',
+    'homeHeroTitle': 'Food choices that feel personal',
     'homeHeroSubtitle':
         'BioDietix keeps body measurements, allergies, and latest lab memory on the phone. Product checks use that profile until a newer PDF is uploaded.',
     'currentProfile': 'Current profile',
@@ -255,7 +256,7 @@ const _values = {
     'allergyPdfFailed': 'Allergy PDF failed',
     'allergySignalsDetected': 'allergy signal(s) detected.',
     'serverNotConfigured':
-        'BioDietix server is not configured. Build the APK with a public HTTPS API URL.',
+        'BioDietix cloud service is temporarily unavailable.',
     'productScanner': 'Product scanner',
     'productScannerSubtitle':
         'Scan a market product and evaluate it against the latest blood/allergy profile.',
@@ -344,7 +345,7 @@ const _values = {
     'altBalancedProtein': 'Prefer moderate protein portions.',
     'altWholeFood': 'Prefer a simpler whole-food alternative.',
     'settingsSubtitle':
-        'Control language, appearance, account, and server status.',
+        'Keep your account, language, and app feeling just right.',
     'accountProfile': 'Account profile',
     'uploadPhotoGallery': 'Upload photo from gallery',
     'uploadPhotoCamera': 'Take profile photo',
@@ -356,24 +357,29 @@ const _values = {
     'system': 'System',
     'light': 'Light',
     'dark': 'Dark',
+    'cloudService': 'BioDietix cloud',
+    'cloudServiceSubtitle':
+        'The app connects automatically. You do not need to configure anything.',
+    'serviceReady': 'Secure cloud connection is ready.',
+    'serviceUnavailable': 'Cloud connection is not available right now.',
+    'serviceEndpoint': 'Service endpoint',
     'server': 'Server',
     'serverSubtitle':
         'The phone app needs a public BioDietix API. Emulator/private computer addresses do not work for other users.',
     'productionApiUrl': 'Production API URL',
     'flavor': 'Flavor',
     'notConfigured': 'Not configured',
-    'checkApiConnection': 'Check API connection',
-    'apiConnected': 'API connected',
-    'apiConnectionFailed': 'API connection failed',
+    'checkApiConnection': 'Check connection',
+    'apiConnected': 'Connection ready',
+    'apiConnectionFailed': 'Connection check failed',
     'account': 'Account',
     'signedInAs': 'Signed in as',
   },
   AppLanguage.tr: {
     'appTitle': 'BioDietix',
     'splashSubtitle':
-        'Testler, alerjiler ve gıda verilerinden kişisel beslenme.',
-    'splashChecking':
-        'Internet, oturum ve yerel Hive verileri kontrol ediliyor...',
+        'Testlerine ve günlük seçimlerine göre sakin beslenme rehberliği.',
+    'splashChecking': 'Profilin hazırlanıyor...',
     'onboardLabsTitle': 'Test sonuçlarını günlük beslenme bağlamına çevir',
     'onboardLabsBody':
         'Bu telefonda erişilebilir kalan bir profil oluşturmak için kan ve alerji raporlarını yükle.',
@@ -392,7 +398,7 @@ const _values = {
     'settings': 'Ayarlar',
     'biodietixMobile': 'BIODIETIX MOBIL',
     'personalNutritionEngine': 'KISISEL BESLENME MOTORU',
-    'authHeroTitle': 'Son testlerine göre kişisel beslenme kararları',
+    'authHeroTitle': 'Beslenmeni daha sakin anlamanın yolu',
     'authHeroSubtitle':
         'Güvenli giriş yap, profilini bir kez ekle, kan/alerji raporlarını yükle ve market ürünlerini tara.',
     'firebaseMissingTitle': 'Firebase kurulumu gerekli',
@@ -427,7 +433,7 @@ const _values = {
     'wrongPassword': 'E-posta veya şifre hatalı.',
     'userNotFound': 'Bu e-posta için hesap bulunamadı.',
     'networkRequestFailed': 'Ağ bağlantısı başarısız. Tekrar dene.',
-    'homeHeroTitle': 'Yiyecekleri kendi testlerine göre tara',
+    'homeHeroTitle': 'Sana daha yakın beslenme seçimleri',
     'homeHeroSubtitle':
         'BioDietix boy, kilo, alerji ve son test hafızasını telefonda tutar. Yeni PDF yüklenene kadar ürün kontrolleri bu profile göre yapılır.',
     'currentProfile': 'Güncel profil',
@@ -486,8 +492,7 @@ const _values = {
     'bloodPdfFailed': 'Kan PDF’i başarısız',
     'allergyPdfFailed': 'Alerji PDF’i başarısız',
     'allergySignalsDetected': 'alerji sinyali bulundu.',
-    'serverNotConfigured':
-        'BioDietix sunucusu yapılandırılmamış. APK’yı herkese açık HTTPS API adresiyle build et.',
+    'serverNotConfigured': 'BioDietix bulut servisine şu anda ulaşılamıyor.',
     'productScanner': 'Ürün tarayıcı',
     'productScannerSubtitle':
         'Market ürününü tara ve son kan/alerji profiline göre değerlendir.',
@@ -574,7 +579,7 @@ const _values = {
     'altHighFiber': 'Baklagil, sebze, yulaf, tam tahıl veya meyve seç.',
     'altBalancedProtein': 'Orta porsiyon protein tercih et.',
     'altWholeFood': 'Daha sade, işlenmemiş bir alternatif tercih et.',
-    'settingsSubtitle': 'Dil, görünüm, hesap ve sunucu durumunu yönet.',
+    'settingsSubtitle': 'Hesabını, dilini ve uygulama hissini kendine uydur.',
     'accountProfile': 'Hesap profili',
     'uploadPhotoGallery': 'Galeriden fotoğraf yükle',
     'uploadPhotoCamera': 'Profil fotoğrafı çek',
@@ -586,15 +591,21 @@ const _values = {
     'system': 'Sistem',
     'light': 'Açık',
     'dark': 'Koyu',
+    'cloudService': 'BioDietix bulut',
+    'cloudServiceSubtitle':
+        'Uygulama otomatik bağlanır. Herhangi bir ayar yapman gerekmez.',
+    'serviceReady': 'Güvenli bulut bağlantısı hazır.',
+    'serviceUnavailable': 'Bulut bağlantısı şu anda kullanılamıyor.',
+    'serviceEndpoint': 'Servis adresi',
     'server': 'Sunucu',
     'serverSubtitle':
         'Telefon uygulaması herkese açık BioDietix API gerektirir. Emülatör veya kişisel bilgisayar adresleri diğer kullanıcılarda çalışmaz.',
     'productionApiUrl': 'Production API adresi',
     'flavor': 'Flavor',
     'notConfigured': 'Yapılandırılmadı',
-    'checkApiConnection': 'API bağlantısını kontrol et',
-    'apiConnected': 'API bağlı',
-    'apiConnectionFailed': 'API bağlantısı başarısız',
+    'checkApiConnection': 'Bağlantıyı kontrol et',
+    'apiConnected': 'Bağlantı hazır',
+    'apiConnectionFailed': 'Bağlantı kontrolü başarısız',
     'account': 'Hesap',
     'signedInAs': 'Giriş yapılan hesap',
   },

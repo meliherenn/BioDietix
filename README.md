@@ -109,8 +109,10 @@ ayarlarina SHA-1 ve SHA-256 sertifika parmak izleri eklenmeli, ardindan guncel
 `google-services.json` yeniden indirilmelidir.
 Android Firebase dosyasi `mobile/android/app/google-services.json` konumunda
 bulunmalidir ve paket adi `com.biodietix.biodietix_mobile` olmalidir.
-Telefonlara kurulacak APK icin `BIODIETIX_API_URL` mutlaka internete acik HTTPS
-BioDietix API adresi olmalidir. Gelistirici bilgisayari, emulator adresleri
+Telefonlara kurulacak prod APK/AAB icin BioDietix API adresi uygulama icine
+varsayilan olarak gomuludur. Kullanici herhangi bir API ayari yapmaz. Farkli
+bir backend denemek isteyen gelistirici `BIODIETIX_API_URL` dart-define degeriyle
+bu adresi build sirasinda ezebilir. Gelistirici bilgisayari, emulator adresleri
 veya ozel ag IP'leri baska kullanicilarin telefonunda calismaz. Uygulamada
 preview/giris atlama modu yoktur.
 
@@ -124,7 +126,8 @@ APK uretmek icin:
 
 ```bash
 cd mobile
-flutter build apk --release --dart-define-from-file=firebase_defines.json
+flutter build apk --release --flavor prod --dart-define=FLAVOR=prod
+flutter build appbundle --release --flavor prod --dart-define=FLAVOR=prod
 ```
 
 APK cikti yolu:

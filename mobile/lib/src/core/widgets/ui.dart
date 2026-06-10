@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-const ink = Color(0xFF13231F);
-const green = Color(0xFF0F766E);
-const deepGreen = Color(0xFF0F3F37);
-const gold = Color(0xFFD6B66D);
-const background = Color(0xFFF5F7F2);
-const line = Color(0xFFD8E2DC);
-const muted = Color(0xFF61716A);
+const ink = Color(0xFF151B18);
+const green = Color(0xFF11847A);
+const deepGreen = Color(0xFF0A2D28);
+const gold = Color(0xFFC7A45D);
+const background = Color(0xFFF7F7F3);
+const line = Color(0xFFE2E5DF);
+const muted = Color(0xFF6B746F);
 const danger = Color(0xFFB42318);
 const amber = Color(0xFFA16207);
 const violet = Color(0xFF7C3AED);
@@ -17,27 +17,27 @@ bool _dark(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark;
 
 Color appBackground(BuildContext context) {
-  return _dark(context) ? const Color(0xFF071310) : background;
+  return _dark(context) ? const Color(0xFF050A09) : background;
 }
 
 Color appCardColor(BuildContext context) {
-  return _dark(context) ? const Color(0xFF10231F) : Colors.white;
+  return _dark(context) ? const Color(0xFF101715) : Colors.white;
 }
 
 Color appLineColor(BuildContext context) {
-  return _dark(context) ? const Color(0xFF26423A) : line;
+  return _dark(context) ? const Color(0xFF26322F) : line;
 }
 
 Color appMutedColor(BuildContext context) {
-  return _dark(context) ? const Color(0xFF9CB0A8) : muted;
+  return _dark(context) ? const Color(0xFFAAB5AF) : muted;
 }
 
 Color appSecondaryFill(BuildContext context) {
-  return _dark(context) ? const Color(0xFF19352F) : const Color(0xFFEDF5F1);
+  return _dark(context) ? const Color(0xFF17211F) : const Color(0xFFF0F3EE);
 }
 
 Color appSecondaryText(BuildContext context) {
-  return _dark(context) ? const Color(0xFFE6F2ED) : deepGreen;
+  return _dark(context) ? const Color(0xFFE8EFEB) : deepGreen;
 }
 
 class AppCard extends StatelessWidget {
@@ -51,17 +51,17 @@ class AppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: appCardColor(context),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: appLineColor(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: _dark(context) ? .28 : .07),
-            blurRadius: 28,
-            offset: const Offset(0, 14),
+            color: Colors.black.withValues(alpha: _dark(context) ? .20 : .045),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -106,21 +106,21 @@ class HeroPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF124A40), Color(0xFF09221D)],
+        color: _dark(context) ? const Color(0xFF0D1816) : deepGreen,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: _dark(context)
+              ? const Color(0xFF223A35)
+              : Colors.white.withValues(alpha: .18),
         ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white10),
         boxShadow: [
           BoxShadow(
-            color: deepGreen.withValues(alpha: _dark(context) ? .35 : .22),
-            blurRadius: 30,
-            offset: const Offset(0, 18),
+            color: Colors.black.withValues(alpha: _dark(context) ? .22 : .10),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -133,7 +133,7 @@ class HeroPanel extends StatelessWidget {
               height: 46,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: Colors.white24),
               ),
               child: Icon(icon, color: Colors.white, size: 24),
@@ -146,7 +146,7 @@ class HeroPanel extends StatelessWidget {
               color: gold,
               fontSize: 12,
               fontWeight: FontWeight.w900,
-              letterSpacing: 1.1,
+              letterSpacing: 0,
             ),
           ),
           const SizedBox(height: 12),
@@ -154,7 +154,7 @@ class HeroPanel extends StatelessWidget {
             title,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 28,
+              fontSize: 26,
               height: 1.13,
               fontWeight: FontWeight.w900,
             ),
@@ -287,7 +287,7 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 50,
       child: FilledButton(
         style: FilledButton.styleFrom(
           backgroundColor: secondary ? appSecondaryFill(context) : green,
@@ -297,7 +297,7 @@ class AppButton extends StatelessWidget {
               : const Color(0xFFE0E7E2),
           disabledForegroundColor: appMutedColor(context),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             side: secondary
                 ? BorderSide(color: appLineColor(context))
                 : BorderSide.none,
@@ -335,9 +335,10 @@ class AppChip extends StatelessWidget {
       selected: selected,
       onSelected: (_) => onTap(),
       selectedColor: _dark(context)
-          ? const Color(0xFF1E4C43)
-          : const Color(0xFFE4F5EF),
+          ? const Color(0xFF183B36)
+          : const Color(0xFFE5F2EF),
       checkmarkColor: _dark(context) ? Colors.white : green,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       side: BorderSide(color: selected ? green : appLineColor(context)),
       labelStyle: TextStyle(
         color: selected ? appSecondaryText(context) : appMutedColor(context),
@@ -368,7 +369,7 @@ class NoticeBox extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: border),
       ),
       child: Text(message),
