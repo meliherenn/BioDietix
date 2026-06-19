@@ -37,6 +37,25 @@ class AppStrings {
     return t(key);
   }
 
+  String dataQuality(String value) {
+    final key = switch (value) {
+      'high' => 'dataQualityHigh',
+      'medium' => 'dataQualityMedium',
+      'low' => 'dataQualityLow',
+      _ => 'dataQualityMissing',
+    };
+    return t(key);
+  }
+
+  String dataQualityNotice(String value) {
+    final key = switch (value) {
+      'low' => 'dataQualityLowNotice',
+      'missing' => 'dataQualityMissingNotice',
+      _ => 'dataQualityMediumNotice',
+    };
+    return t(key);
+  }
+
   String reason(Map<String, dynamic> reason) {
     final code = reason['code']?.toString() ?? '';
     final value = reason['value'] == null ? '' : ' (${reason['value']})';
@@ -143,6 +162,10 @@ const _values = {
     'splashSubtitle':
         'A warm diet companion for meals, labels, allergies, and daily choices.',
     'splashChecking': 'Preparing your nutrition space...',
+    'splashInternet': 'Internet',
+    'splashSession': 'Session',
+    'splashHive': 'Local Hive',
+    'splashReady': 'Ready',
     'onboardLabsTitle': 'Build a balanced plate that fits you',
     'onboardLabsBody':
         'Add your body details, allergies, and optional reports to shape a diet profile that stays on this phone.',
@@ -157,13 +180,18 @@ const _values = {
     'home': 'Home',
     'profile': 'Profile',
     'tests': 'Reports',
-    'scan': 'Market',
+    'scan': 'Scan',
     'settings': 'Settings',
     'biodietixMobile': 'BIODIETIX NUTRITION',
     'personalNutritionEngine': 'YOUR DAILY NUTRITION GUIDE',
     'authHeroTitle': 'A warmer way to plan what you eat',
     'authHeroSubtitle':
-        'Create your profile, track meals, add allergy or lab context when needed, and scan food labels at the market.',
+        'Create your profile, keep allergy or lab context ready, and scan food labels with confidence.',
+    'signInSubtitle': 'Welcome back. Your daily nutrition rhythm is waiting.',
+    'createAccountSubtitle':
+        'Start with a secure account and keep your BioDietix data synced.',
+    'forgotPasswordSubtitle':
+        'Enter your email and we will send a secure reset link.',
     'firebaseMissingTitle': 'Firebase setup required',
     'firebaseMissingMessage':
         'This APK was built without Firebase configuration. Add the Firebase Android values and rebuild so users can sign in.',
@@ -201,20 +229,65 @@ const _values = {
     'homeHeroSubtitle':
         'BioDietix brings meals, allergies, body details, and label checks into one warm nutrition routine.',
     'currentProfile': 'Diet profile',
+    'nutritionCompass': 'Nutrition compass',
+    'reportMemoryActive': 'Report memory active',
+    'todaysGuide': "Today's guide",
+    'increaseShort': 'Increase',
+    'limitShort': 'Limit',
+    'homeProfileSubtitle':
+        'A compact view of the signals guiding meals and food label checks.',
+    'homeProfileEmptyHint':
+        'Add a blood PDF in Reports or save profile details to make today more personal.',
+    'decisionHomeTitle': 'Your food decisions',
+    'decisionHomeSubtitle':
+        'A focused view of products BioDietix checked against your blood profile, allergies, and label data.',
+    'decisionOverview': 'Decision overview',
+    'decisionOverviewSubtitle':
+        'Track which products look suitable, need attention, or should be avoided.',
+    'checkedProducts': 'Checked products',
+    'productChecks': 'Product checks',
+    'safeToEat': 'Suitable',
+    'needsAttention': 'Attention',
+    'avoidProducts': 'Avoid',
+    'scanProduct': 'Scan product',
+    'latestProductChecks': 'Latest product checks',
+    'latestProductChecksSubtitle':
+        'Saved results from barcode scans and manual label evaluations.',
+    'noProductChecksTitle': 'No product checked yet',
+    'noProductChecksBody':
+        'Scan a barcode or enter label details to see whether the product fits your profile.',
+    'editProductNote': 'Edit product note',
+    'productNote': 'Product note',
+    'unknownProduct': 'Unknown product',
     'noBloodAnalyzed': 'No report or diet memory has been added yet.',
     'latestExtractedValues': 'Latest extracted values',
-    'mealLogs': 'Meal logs',
+    'labSignals': 'lab signals',
+    'mealLogs': 'Product checks',
     'mealLogsSubtitle':
-        'Write what you ate, adjust notes later, and keep your daily nutrition story available offline.',
+        'Save product decisions, adjust notes later, and keep personal food guidance available offline.',
+    'dashboardTitle': 'Food decisions',
+    'dashboardSubtitle':
+        'A calm view of checked products, decision signals, and notes.',
+    'dailyBalance': 'Decision balance',
+    'todayCalories': 'Checked products',
+    'mealCount': 'Needs attention',
+    'profileSignals': 'Profile signals',
+    'nutritionMemory': 'Nutrition memory',
+    'noMealLogsTitle': 'Start with your first product',
+    'noMealLogsBody':
+        'Scan a label or barcode and BioDietix keeps the decision available offline.',
+    'cachedMode': 'Offline cache',
+    'quickAdd': 'Scan product',
+    'mealTimeline': 'Product decision history',
     'offlineCacheNotice':
         'Showing cached data because the online source is currently unavailable.',
-    'addMealLog': 'Add meal log',
-    'editMealLog': 'Edit meal log',
-    'noMealLogs': 'No meal logs yet.',
-    'mealTitle': 'Meal title',
-    'mealTitleRequired': 'Meal title is required.',
-    'mealNote': 'Note',
-    'mealCalories': 'Calories',
+    'addMealLog': 'Add product check',
+    'editMealLog': 'Edit product check',
+    'noMealLogs': 'No product checks yet.',
+    'mealTitle': 'Product name',
+    'mealTitleRequired': 'Product name is required.',
+    'mealNote': 'Product note',
+    'mealCalories': 'Energy kcal/100g',
     'kcal': 'kcal',
     'edit': 'Edit',
     'delete': 'Delete',
@@ -246,6 +319,30 @@ const _values = {
     'testsSubtitle':
         'Use optional blood or allergy reports to tune the diet profile behind your food recommendations.',
     'labReports': 'Nutrition profile reports',
+    'labReportsSubtitle':
+        'Upload a new PDF whenever you want to replace or improve the saved analysis.',
+    'reportStatus': 'Report status',
+    'reportStatusReadyBody':
+        'Saved analysis is available, so this screen no longer starts from zero.',
+    'reportStatusEmptyBody':
+        'Your first report will turn into a reusable diet profile summary here.',
+    'noReportYetTitle': 'No report added yet',
+    'noReportYetBody':
+        'Upload a blood or allergy PDF and BioDietix will keep the useful summary for later visits.',
+    'bloodReportReady': 'Blood report analyzed',
+    'bloodReportReadyBody':
+        'Diet focus, nutrition notes, and extracted lab values are saved for future checks.',
+    'allergyReportReady': 'Allergy signals saved',
+    'allergyReportReadyBody':
+        'Known allergy signals will be considered during product and meal recommendations.',
+    'reportSavedOnDevice':
+        'The useful analysis summary is saved. The raw PDF text is only shown right after upload.',
+    'pdfPreviewSessionNotice':
+        'PDF text preview is available for this upload session.',
+    'pdfPreviewPrivacyNote':
+        'This is the extracted text preview. The app keeps the useful nutrition summary instead of filling the screen with raw PDF text.',
+    'viewPdfPreview': 'View PDF text',
+    'analysisSummary': 'Analysis summary',
     'uploadBloodPdf': 'Upload blood test PDF',
     'uploadAllergyPdf': 'Upload allergy test PDF',
     'currentAllergies': 'Current allergies',
@@ -257,16 +354,25 @@ const _values = {
     'allergySignalsDetected': 'allergy signal(s) detected.',
     'serverNotConfigured':
         'BioDietix cloud service is temporarily unavailable.',
-    'productScanner': 'Product scanner',
+    'productScanner': 'Product scan',
     'productScannerSubtitle':
-        'Scan a market product and see how its label fits your diet profile.',
-    'barcodeLookup': 'Barcode lookup',
+        'Scan a barcode and BioDietix will look up the product automatically. Add details manually only when needed.',
+    'barcodeLookup': 'Fast barcode lookup',
     'bloodRequired':
         'Blood test profile required before personal product checks.',
     'openCameraScanner': 'Open camera scanner',
     'barcodeQrValue': 'Barcode / QR value',
-    'lookUpProduct': 'Look up product',
+    'lookUpProduct': 'Search barcode',
     'productDetails': 'Product details',
+    'productReady': 'Product found',
+    'productReadySubtitle':
+        'Review the matched label data, then evaluate it with your diet profile.',
+    'editProductDetails': 'Edit details',
+    'manualAddProduct': 'Manual add',
+    'manualAddProductSubtitle':
+        'Use this when the barcode is missing or the label needs extra detail.',
+    'openManualDetails': 'Open manual product form',
+    'manualProductDetails': 'Manual product details',
     'name': 'Name',
     'brand': 'Brand',
     'quantity': 'Quantity',
@@ -291,9 +397,12 @@ const _values = {
     'productLookupNotFound':
         'This barcode was not found in the online food database. You can enter the product details manually and evaluate it.',
     'manualProductHint':
-        'If barcode lookup does not find the product, fill the visible fields from the label and continue with evaluation.',
+        'Open this only when barcode lookup cannot find enough label data.',
+    'sugarShort': 'Sugar',
+    'saltShort': 'Salt',
     'uploadBloodFirst': 'Upload a blood test PDF first.',
     'productEvaluationFailed': 'Product evaluation failed',
+    'productCheckSaved': 'Product check saved to Home.',
     'closeScanner': 'Close scanner',
     'decision': 'Decision',
     'reasons': 'Reasons',
@@ -304,6 +413,17 @@ const _values = {
     'decisionRecommended': 'Recommended',
     'decisionCaution': 'Use with caution',
     'decisionNotRecommended': 'Not recommended',
+    'dataQuality': 'Product data',
+    'dataQualityHigh': 'Good label data',
+    'dataQualityMedium': 'Partial label data',
+    'dataQualityLow': 'Limited label data',
+    'dataQualityMissing': 'No nutrition values',
+    'dataQualityMediumNotice':
+        'Some label values are missing, so the result should be read as guidance.',
+    'dataQualityLowNotice':
+        'Only limited product data is available. BioDietix avoids a hard not-recommended decision unless there is allergy conflict or strong measured risk.',
+    'dataQualityMissingNotice':
+        'Nutrition values are missing. Add label values for a more confident result.',
     'reasonAllergyConflict': 'Allergy conflict',
     'reasonNutritionMissing':
         'Nutrition data is missing, so this product should be evaluated cautiously',
@@ -347,6 +467,10 @@ const _values = {
     'settingsSubtitle':
         'Keep your account, profile photo, language, and app feeling just right.',
     'accountProfile': 'Account profile',
+    'changeProfilePhoto': 'Change profile photo',
+    'photoSourceTitle': 'Choose photo source',
+    'gallery': 'Gallery',
+    'camera': 'Camera',
     'uploadPhotoGallery': 'Upload photo from gallery',
     'uploadPhotoCamera': 'Take profile photo',
     'profilePhotoUpdated': 'Profile photo updated.',
@@ -380,6 +504,10 @@ const _values = {
     'splashSubtitle':
         'Öğünlerin, etiketler, alerjiler ve günlük seçimler için sıcak bir diyet eşlikçisi.',
     'splashChecking': 'Beslenme alanın hazırlanıyor...',
+    'splashInternet': 'İnternet',
+    'splashSession': 'Oturum',
+    'splashHive': 'Yerel Hive',
+    'splashReady': 'Hazır',
     'onboardLabsTitle': 'Sana uyan dengeli tabağı kur',
     'onboardLabsBody':
         'Vücut bilgilerini, alerjilerini ve istersen raporlarını ekle; bu telefonda kalan diyet profilin oluşsun.',
@@ -394,13 +522,19 @@ const _values = {
     'home': 'Ana Sayfa',
     'profile': 'Profil',
     'tests': 'Raporlar',
-    'scan': 'Market',
+    'scan': 'Tarama',
     'settings': 'Ayarlar',
     'biodietixMobile': 'BIODIETIX BESLENME',
-    'personalNutritionEngine': 'GUNLUK BESLENME REHBERIN',
+    'personalNutritionEngine': 'GÜNLÜK BESLENME REHBERİN',
     'authHeroTitle': 'Ne yiyeceğini daha sıcak planla',
     'authHeroSubtitle':
-        'Profilini oluştur, öğünlerini takip et, gerekirse alerji ya da test bağlamı ekle ve market etiketlerini tara.',
+        'Profilini oluştur, alerji ve test bağlamını hazır tut, gıda etiketlerini güvenle tara.',
+    'signInSubtitle':
+        'Tekrar hoş geldin. Günlük beslenme ritmin seni bekliyor.',
+    'createAccountSubtitle':
+        'Güvenli bir hesapla başla ve BioDietix verilerini senkron tut.',
+    'forgotPasswordSubtitle':
+        'E-postanı gir; güvenli sıfırlama bağlantısını gönderelim.',
     'firebaseMissingTitle': 'Firebase kurulumu gerekli',
     'firebaseMissingMessage':
         'Bu APK Firebase yapılandırması olmadan derlenmiş. Kullanıcıların giriş yapabilmesi için Firebase Android değerlerini ekleyip yeniden build al.',
@@ -437,20 +571,65 @@ const _values = {
     'homeHeroSubtitle':
         'BioDietix öğünlerini, alerjilerini, vücut bilgilerini ve etiket kontrollerini sıcak bir beslenme rutininde toplar.',
     'currentProfile': 'Diyet profili',
+    'nutritionCompass': 'Diyet pusulası',
+    'reportMemoryActive': 'Rapor hafızası aktif',
+    'todaysGuide': 'Bugünün rehberi',
+    'increaseShort': 'Artır',
+    'limitShort': 'Sınırla',
+    'homeProfileSubtitle':
+        'Öğün ve ürün etiketi kontrollerini yönlendiren sinyallerin kompakt özeti.',
+    'homeProfileEmptyHint':
+        'Bugünü daha kişisel yapmak için Raporlar’dan kan PDF’i ekle veya profil bilgilerini kaydet.',
+    'decisionHomeTitle': 'Gıda kararların',
+    'decisionHomeSubtitle':
+        'BioDietix’in kan profilin, alerjilerin ve etiket verilerine göre kontrol ettiği ürünlerin net özeti.',
+    'decisionOverview': 'Karar özeti',
+    'decisionOverviewSubtitle':
+        'Hangi ürün uygun, hangisi dikkat ister, hangisinden kaçınmak gerekir hızlıca gör.',
+    'checkedProducts': 'Kontrol edilen',
+    'productChecks': 'Ürün kontrolü',
+    'safeToEat': 'Uygun',
+    'needsAttention': 'Dikkat',
+    'avoidProducts': 'Kaçın',
+    'scanProduct': 'Ürün tara',
+    'latestProductChecks': 'Son ürün kontrolleri',
+    'latestProductChecksSubtitle':
+        'Barkod tarama ve manuel etiket değerlendirmelerinden kaydedilen sonuçlar.',
+    'noProductChecksTitle': 'Henüz ürün kontrol edilmedi',
+    'noProductChecksBody':
+        'Barkod tara veya etiket bilgisi gir; ürünün profiline uygun olup olmadığını gör.',
+    'editProductNote': 'Ürün notunu düzenle',
+    'productNote': 'Ürün notu',
+    'unknownProduct': 'Bilinmeyen ürün',
     'noBloodAnalyzed': 'Henüz rapor veya diyet hafızası eklenmedi.',
     'latestExtractedValues': 'Son çıkarılan değerler',
-    'mealLogs': 'Öğün kayıtları',
+    'labSignals': 'laboratuvar sinyali',
+    'mealLogs': 'Ürün kontrolleri',
     'mealLogsSubtitle':
-        'Ne yediğini yaz, notlarını sonra düzenle ve günlük beslenme hikayeni çevrimdışıyken de yanında tut.',
+        'Ürün kararlarını kaydet, notlarını sonra düzenle ve kişisel gıda rehberini çevrimdışıyken de yanında tut.',
+    'dashboardTitle': 'Gıda kararları',
+    'dashboardSubtitle':
+        'Kontrol edilen ürünleri, karar sinyallerini ve notlarını sakin bir akışta gör.',
+    'dailyBalance': 'Karar dengesi',
+    'todayCalories': 'Kontrol edilen',
+    'mealCount': 'Dikkat isteyen',
+    'profileSignals': 'Profil sinyalleri',
+    'nutritionMemory': 'Beslenme hafızası',
+    'noMealLogsTitle': 'İlk ürün kontrolünle başla',
+    'noMealLogsBody':
+        'Etiket veya barkod tara; BioDietix kararı çevrimdışıyken de yanında tutsun.',
+    'cachedMode': 'Çevrimdışı önbellek',
+    'quickAdd': 'Ürün tara',
+    'mealTimeline': 'Ürün karar geçmişi',
     'offlineCacheNotice':
         'Çevrimiçi kaynak şu an kullanılamadığı için önbellekteki veri gösteriliyor.',
-    'addMealLog': 'Öğün kaydı ekle',
-    'editMealLog': 'Öğün kaydını düzenle',
-    'noMealLogs': 'Henüz öğün kaydı yok.',
-    'mealTitle': 'Öğün başlığı',
-    'mealTitleRequired': 'Öğün başlığı zorunlu.',
-    'mealNote': 'Not',
-    'mealCalories': 'Kalori',
+    'addMealLog': 'Ürün kontrolü ekle',
+    'editMealLog': 'Ürün kontrolünü düzenle',
+    'noMealLogs': 'Henüz ürün kontrolü yok.',
+    'mealTitle': 'Ürün adı',
+    'mealTitleRequired': 'Ürün adı zorunlu.',
+    'mealNote': 'Ürün notu',
+    'mealCalories': 'Enerji kcal/100g',
     'kcal': 'kcal',
     'edit': 'Düzenle',
     'delete': 'Sil',
@@ -482,6 +661,30 @@ const _values = {
     'testsSubtitle':
         'Yemek önerilerinin arkasındaki diyet profilini hassaslaştırmak için isteğe bağlı kan ya da alerji raporu ekle.',
     'labReports': 'Beslenme profili raporları',
+    'labReportsSubtitle':
+        'Kayıtlı analizi yenilemek veya güçlendirmek istediğinde yeni PDF yükleyebilirsin.',
+    'reportStatus': 'Rapor durumu',
+    'reportStatusReadyBody':
+        'Kayıtlı analiz var; bu ekran artık her girişte sıfırdan başlamıyor.',
+    'reportStatusEmptyBody':
+        'İlk raporun burada tekrar kullanılabilir bir diyet profili özetine dönüşür.',
+    'noReportYetTitle': 'Henüz rapor eklenmedi',
+    'noReportYetBody':
+        'Kan veya alerji PDF’i yükle; BioDietix işe yarayan özeti sonraki ziyaretler için saklasın.',
+    'bloodReportReady': 'Kan raporu analiz edildi',
+    'bloodReportReadyBody':
+        'Diyet odağı, beslenme notları ve çıkarılan laboratuvar değerleri sonraki kontroller için kayıtlı.',
+    'allergyReportReady': 'Alerji sinyalleri kaydedildi',
+    'allergyReportReadyBody':
+        'Bilinen alerji sinyalleri ürün ve öğün önerilerinde dikkate alınır.',
+    'reportSavedOnDevice':
+        'Kullanışlı analiz özeti kayıtlı. Ham PDF metni yalnızca yükleme sonrasında gösterilir.',
+    'pdfPreviewSessionNotice':
+        'PDF metin önizlemesi bu yükleme oturumu için hazır.',
+    'pdfPreviewPrivacyNote':
+        'Bu çıkarılan metin önizlemesidir. Uygulama ekranı ham PDF metniyle doldurmak yerine işe yarayan beslenme özetini saklar.',
+    'viewPdfPreview': 'PDF metnini görüntüle',
+    'analysisSummary': 'Analiz özeti',
     'uploadBloodPdf': 'Kan testi PDF’i yükle',
     'uploadAllergyPdf': 'Alerji testi PDF’i yükle',
     'currentAllergies': 'Güncel alerjiler',
@@ -493,16 +696,25 @@ const _values = {
     'allergyPdfFailed': 'Alerji PDF’i başarısız',
     'allergySignalsDetected': 'alerji sinyali bulundu.',
     'serverNotConfigured': 'BioDietix bulut servisine şu anda ulaşılamıyor.',
-    'productScanner': 'Ürün tarayıcı',
+    'productScanner': 'Ürün tarama',
     'productScannerSubtitle':
-        'Market ürününü tara ve etiketinin diyet profiline nasıl uyduğunu gör.',
-    'barcodeLookup': 'Barkod arama',
+        'Barkodu okut; BioDietix ürünü otomatik arasın. Gerekirse manuel ürün bilgisi ekle.',
+    'barcodeLookup': 'Barkodla hızlı ara',
     'bloodRequired':
         'Kişisel ürün kontrolü için önce kan testi profili gerekir.',
     'openCameraScanner': 'Kamera tarayıcıyı aç',
     'barcodeQrValue': 'Barkod / QR değeri',
-    'lookUpProduct': 'Ürünü bul',
+    'lookUpProduct': 'Barkodu ara',
     'productDetails': 'Ürün detayları',
+    'productReady': 'Ürün bulundu',
+    'productReadySubtitle':
+        'Eşleşen etiket verisini kontrol et, sonra diyet profiline göre değerlendir.',
+    'editProductDetails': 'Detayları düzenle',
+    'manualAddProduct': 'Manuel ekle',
+    'manualAddProductSubtitle':
+        'Barkod yoksa veya etiket için ek bilgi gerekiyorsa bu alanı kullan.',
+    'openManualDetails': 'Manuel ürün formunu aç',
+    'manualProductDetails': 'Manuel ürün detayları',
     'name': 'Ad',
     'brand': 'Marka',
     'quantity': 'Miktar',
@@ -527,9 +739,12 @@ const _values = {
     'productLookupNotFound':
         'Bu barkod çevrimiçi gıda veritabanında bulunamadı. Ürün bilgilerini elle girip değerlendirebilirsin.',
     'manualProductHint':
-        'Barkod araması ürünü bulamazsa etiketteki bilgileri görünen alanlara girip değerlendirmeye devam et.',
+        'Barkod araması yeterli etiket verisi bulamazsa bu alanı açıp doldur.',
+    'sugarShort': 'Şeker',
+    'saltShort': 'Tuz',
     'uploadBloodFirst': 'Önce kan testi PDF’i yükle.',
     'productEvaluationFailed': 'Ürün değerlendirme başarısız',
+    'productCheckSaved': 'Ürün kontrolü Ana Sayfa’ya kaydedildi.',
     'closeScanner': 'Tarayıcıyı kapat',
     'decision': 'Karar',
     'reasons': 'Nedenler',
@@ -539,6 +754,17 @@ const _values = {
     'decisionRecommended': 'Önerilir',
     'decisionCaution': 'Dikkatli tüket',
     'decisionNotRecommended': 'Önerilmez',
+    'dataQuality': 'Ürün verisi',
+    'dataQualityHigh': 'İyi etiket verisi',
+    'dataQualityMedium': 'Kısmi etiket verisi',
+    'dataQualityLow': 'Sınırlı etiket verisi',
+    'dataQualityMissing': 'Besin değeri yok',
+    'dataQualityMediumNotice':
+        'Bazı etiket değerleri eksik; sonucu rehber niteliğinde oku.',
+    'dataQualityLowNotice':
+        'Ürün verisi sınırlı. BioDietix alerji çakışması veya güçlü ölçülmüş risk yoksa doğrudan önerilmez demez.',
+    'dataQualityMissingNotice':
+        'Besin değerleri eksik. Daha güvenli sonuç için etiket değerlerini ekle.',
     'reasonAllergyConflict': 'Alerji uyumsuzluğu',
     'reasonNutritionMissing':
         'Besin değeri eksik olduğu için ürün dikkatli değerlendirilmeli',
@@ -582,6 +808,10 @@ const _values = {
     'settingsSubtitle':
         'Hesabını, profil fotoğrafını, dilini ve uygulama hissini kendine uydur.',
     'accountProfile': 'Hesap profili',
+    'changeProfilePhoto': 'Profil fotoğrafını değiştir',
+    'photoSourceTitle': 'Fotoğraf kaynağı seç',
+    'gallery': 'Galeri',
+    'camera': 'Kamera',
     'uploadPhotoGallery': 'Galeriden fotoğraf yükle',
     'uploadPhotoCamera': 'Profil fotoğrafı çek',
     'profilePhotoUpdated': 'Profil fotoğrafı güncellendi.',

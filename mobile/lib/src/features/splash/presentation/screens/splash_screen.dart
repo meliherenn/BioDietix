@@ -27,36 +27,13 @@ class SplashScreen extends StatelessWidget {
         child: SafeArea(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 360),
+                constraints: const BoxConstraints(maxWidth: 380),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 112,
-                      height: 112,
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: appCardColor(context),
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: appLineColor(context)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: green.withValues(alpha: .24),
-                            blurRadius: 38,
-                            offset: const Offset(0, 18),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: Image.asset(
-                          'assets/launcher/biodietix_icon.png',
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
+                    const BioDietixLogoMark(size: 118),
                     const SizedBox(height: 26),
                     Text(
                       strings.t('appTitle'),
@@ -76,19 +53,48 @@ class SplashScreen extends StatelessWidget {
                         fontSize: 15,
                       ),
                     ),
-                    const SizedBox(height: 30),
-                    const SizedBox(
-                      width: 26,
-                      height: 26,
-                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    const SizedBox(height: 24),
+                    AppCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        children: [
+                          _SplashStatus(
+                            label: strings.t('splashInternet'),
+                            value: strings.t('splashReady'),
+                            icon: Icons.wifi_rounded,
+                          ),
+                          _SplashStatus(
+                            label: strings.t('splashSession'),
+                            value: strings.t('splashReady'),
+                            icon: Icons.verified_user_rounded,
+                          ),
+                          _SplashStatus(
+                            label: strings.t('splashHive'),
+                            value: strings.t('splashReady'),
+                            icon: Icons.inventory_2_rounded,
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 18),
-                    Text(
-                      strings.t('splashChecking'),
-                      textAlign: TextAlign.center,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.labelSmall?.copyWith(letterSpacing: 0),
+                    const SizedBox(height: 22),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.4),
+                        ),
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Text(
+                            strings.t('splashChecking'),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -96,6 +102,51 @@ class SplashScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SplashStatus extends StatelessWidget {
+  const _SplashStatus({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: appSoftGreen(context),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(icon, color: green, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+          Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: green),
+          ),
+        ],
       ),
     );
   }

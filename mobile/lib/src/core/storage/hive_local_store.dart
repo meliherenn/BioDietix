@@ -7,6 +7,7 @@ import '../../i18n.dart';
 import '../../models/personal_info.dart';
 import '../../models/profile_memory.dart';
 import '../../features/meal_logs/domain/meal_log.dart';
+import '../../features/product_checks/domain/product_check.dart';
 
 class HiveLocalStore {
   static const _boxName = 'biodietix_local';
@@ -114,6 +115,25 @@ class HiveLocalStore {
   Future<void> saveMealLogs(String uid, List<MealLog> items) async {
     await _box.put(
       _key(uid, 'mealLogs'),
+      jsonEncode(items.map((item) => item.toJson()).toList()),
+    );
+  }
+
+  Future<List<ProductCheck>> loadProductChecks(String uid) async {
+    final raw = _box.get(_key(uid, 'productChecks'));
+    if (raw is! String || raw.isEmpty) return const [];
+    final decoded = jsonDecode(raw);
+    if (decoded is! List) return const [];
+    return decoded.whereType<Map>().map((item) {
+      return ProductCheck.fromJson(
+        item.map((key, value) => MapEntry(key.toString(), value)),
+      );
+    }).toList();
+  }
+
+  Future<void> saveProductChecks(String uid, List<ProductCheck> items) async {
+    await _box.put(
+      _key(uid, 'productChecks'),
       jsonEncode(items.map((item) => item.toJson()).toList()),
     );
   }

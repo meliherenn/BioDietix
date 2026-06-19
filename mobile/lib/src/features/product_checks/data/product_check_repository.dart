@@ -4,10 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/storage/hive_local_store.dart';
-import '../domain/meal_log.dart';
+import '../../../models/product.dart';
+import '../../../models/product_evaluation.dart';
+import '../domain/product_check.dart';
 
-class MealLogRepository {
-  const MealLogRepository({
+class ProductCheckRepository {
+  const ProductCheckRepository({
     required this.config,
     required this.localStore,
     required this.firebaseReady,
@@ -23,11 +25,11 @@ class MealLogRepository {
         .doc(config.environmentCollection)
         .collection('users')
         .doc(uid)
-        .collection('meal_logs');
+        .collection('product_checks');
   }
 
-  Future<List<MealLog>> load(String uid) async {
-    final cached = await localStore.loadMealLogs(uid);
+  Future<List<ProductCheck>> load(String uid) async {
+    final cached = await localStore.loadProductChecks(uid);
     if (!firebaseReady) return cached;
 
     try {
@@ -35,28 +37,25 @@ class MealLogRepository {
         uid,
       ).orderBy('createdAt', descending: true).get();
       final items = result.docs.map(_fromDoc).toList();
-      await localStore.saveMealLogs(uid, items);
+      await localStore.saveProductChecks(uid, items);
       return items;
     } on Exception {
       return cached;
     }
   }
 
-  Future<MealLog> create({
+  Future<ProductCheck> createFromEvaluation({
     required String uid,
-    required String title,
-    required String note,
-    required int calories,
+    required Product product,
+    required ProductEvaluation evaluation,
   }) async {
     final now = DateTime.now();
     final doc = firebaseReady ? _collection(uid).doc() : null;
-    final item = MealLog(
+    final item = ProductCheck.fromEvaluation(
       id: doc?.id ?? now.microsecondsSinceEpoch.toString(),
-      title: title,
-      note: note,
-      calories: calories,
-      createdAt: now,
-      updatedAt: now,
+      product: product,
+      evaluation: evaluation,
+      now: now,
     );
 
     await _upsertCache(uid, item);
@@ -66,19 +65,12 @@ class MealLogRepository {
     return item;
   }
 
-  Future<MealLog> update({
+  Future<ProductCheck> updateNote({
     required String uid,
-    required MealLog item,
-    required String title,
+    required ProductCheck item,
     required String note,
-    required int calories,
   }) async {
-    final updated = item.copyWith(
-      title: title,
-      note: note,
-      calories: calories,
-      updatedAt: DateTime.now(),
-    );
+    final updated = item.copyWith(note: note, updatedAt: DateTime.now());
     await _upsertCache(uid, updated);
     if (firebaseReady) {
       _ignoreFirestore(
@@ -90,11 +82,11 @@ class MealLogRepository {
     return updated;
   }
 
-  Future<void> delete({required String uid, required MealLog item}) async {
-    final next = (await localStore.loadMealLogs(
+  Future<void> delete({required String uid, required ProductCheck item}) async {
+    final next = (await localStore.loadProductChecks(
       uid,
     )).where((cached) => cached.id != item.id).toList();
-    await localStore.saveMealLogs(uid, next);
+    await localStore.saveProductChecks(uid, next);
     if (firebaseReady) {
       _ignoreFirestore(_collection(uid).doc(item.id).delete());
     }
@@ -104,30 +96,36 @@ class MealLogRepository {
     unawaited(operation.catchError((Object _) {}));
   }
 
-  Future<void> _upsertCache(String uid, MealLog item) async {
-    final cached = await localStore.loadMealLogs(uid);
+  Future<void> _upsertCache(String uid, ProductCheck item) async {
+    final cached = await localStore.loadProductChecks(uid);
     final next = [item, ...cached.where((cached) => cached.id != item.id)]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    await localStore.saveMealLogs(uid, next);
+    await localStore.saveProductChecks(uid, next);
   }
 
-  MealLog _fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+  ProductCheck _fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
-    return MealLog(
+    return ProductCheck(
       id: doc.id,
-      title: data['title']?.toString() ?? '',
+      productName: data['productName']?.toString() ?? '',
+      brand: data['brand']?.toString() ?? '',
+      barcode: data['barcode']?.toString() ?? '',
+      decision: data['decision']?.toString() ?? 'recommended',
+      dataQualityLevel: data['dataQualityLevel']?.toString() ?? 'medium',
       note: data['note']?.toString() ?? '',
-      calories: (data['calories'] as num?)?.toInt() ?? 0,
       createdAt: _date(data['createdAt']),
       updatedAt: _date(data['updatedAt']),
     );
   }
 
-  Map<String, dynamic> _toFirestore(MealLog item) {
+  Map<String, dynamic> _toFirestore(ProductCheck item) {
     return {
-      'title': item.title,
+      'productName': item.productName,
+      'brand': item.brand,
+      'barcode': item.barcode,
+      'decision': item.decision,
+      'dataQualityLevel': item.dataQualityLevel,
       'note': item.note,
-      'calories': item.calories,
       'createdAt': Timestamp.fromDate(item.createdAt),
       'updatedAt': Timestamp.fromDate(item.updatedAt),
     };

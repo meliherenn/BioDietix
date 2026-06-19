@@ -8,6 +8,7 @@ import '../../../../models/product.dart';
 import '../../../../models/product_evaluation.dart';
 import '../../../../models/profile_memory.dart';
 import '../../../../services/biodietix_api.dart';
+import '../../../product_checks/presentation/cubit/product_check_cubit.dart';
 import '../../../profile/presentation/cubit/profile_cubit.dart';
 
 class ScanScreen extends StatefulWidget {
@@ -41,10 +42,33 @@ class _ScanScreenState extends State<ScanScreen> {
 
   var _scannerOpen = false;
   var _busy = false;
+  var _manualDetailsOpen = false;
   String? _lookupMessage;
   ProductEvaluation? _evaluation;
 
   bool get _serverReady => BioDietixApi.isConfiguredUrl(widget.apiUrl);
+
+  bool get _hasProductDetails {
+    return [
+      _name,
+      _brand,
+      _quantity,
+      _category,
+      _ingredients,
+      _allergens,
+      _labels,
+      _servingSize,
+      _nutritionGrade,
+      _novaGroup,
+      _energy,
+      _sugar,
+      _satFat,
+      _salt,
+      _sodium,
+      _protein,
+      _fiber,
+    ].any((controller) => controller.text.trim().isNotEmpty);
+  }
 
   @override
   void dispose() {
@@ -122,6 +146,46 @@ class _ScanScreenState extends State<ScanScreen> {
     _fiber.text = product.fiberG100g?.toString() ?? '';
   }
 
+  void _clearProductDetails() {
+    for (final controller in [
+      _name,
+      _brand,
+      _quantity,
+      _category,
+      _ingredients,
+      _allergens,
+      _labels,
+      _servingSize,
+      _nutritionGrade,
+      _novaGroup,
+      _energy,
+      _sugar,
+      _satFat,
+      _salt,
+      _sodium,
+      _protein,
+      _fiber,
+    ]) {
+      controller.clear();
+    }
+  }
+
+  void _openManualDetails({bool clear = false}) {
+    if (clear) _clearProductDetails();
+    setState(() {
+      _manualDetailsOpen = true;
+      _evaluation = null;
+    });
+  }
+
+  void _searchScannedBarcode(String value) {
+    _barcode.text = value;
+    setState(() => _scannerOpen = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _lookup();
+    });
+  }
+
   Future<void> _lookup() async {
     final strings = AppScope.of(context).strings;
     if (!_serverReady) {
@@ -137,13 +201,16 @@ class _ScanScreenState extends State<ScanScreen> {
       _busy = true;
       _lookupMessage = null;
       _evaluation = null;
+      _manualDetailsOpen = false;
     });
+    _clearProductDetails();
     try {
       final product = await BioDietixApi(
         widget.apiUrl,
       ).lookupProduct(_barcode.text.trim());
-      _fillProduct(product);
-      if (mounted) showAppSnack(context, strings.t('productFound'));
+      if (!mounted) return;
+      setState(() => _fillProduct(product));
+      showAppSnack(context, strings.t('productFound'));
     } on BioDietixApiException catch (error) {
       if (!mounted) return;
       final message = error.isNotFound
@@ -179,10 +246,17 @@ class _ScanScreenState extends State<ScanScreen> {
 
     setState(() => _busy = true);
     try {
+      final product = _productFromFields();
       final result = await BioDietixApi(
         widget.apiUrl,
-      ).evaluateProduct(product: _productFromFields(), profileMemory: memory);
+      ).evaluateProduct(product: product, profileMemory: memory);
+      if (!mounted) return;
       setState(() => _evaluation = result);
+      await context.read<ProductCheckCubit>().saveEvaluation(
+        product: product,
+        evaluation: result,
+      );
+      if (mounted) showAppSnack(context, strings.t('productCheckSaved'));
     } catch (error) {
       if (mounted) {
         showAppSnack(
@@ -195,15 +269,277 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
+  Widget _productSummaryCard(ProfileMemory? memory) {
+    final strings = AppScope.of(context).strings;
+    final productName = _name.text.trim().isEmpty
+        ? strings.t('notAvailable')
+        : _name.text.trim();
+    final meta = [
+      _brand.text.trim(),
+      _quantity.text.trim(),
+      _category.text.trim(),
+    ].where((value) => value.isNotEmpty).join(' • ');
+    final nutrients = [
+      if (_sugar.text.trim().isNotEmpty)
+        '${strings.t('sugarShort')} ${_sugar.text.trim()}',
+      if (_salt.text.trim().isNotEmpty)
+        '${strings.t('saltShort')} ${_salt.text.trim()}',
+      if (_energy.text.trim().isNotEmpty)
+        '${_energy.text.trim()} ${strings.t('kcal')}',
+    ];
+
+    return AppCard(
+      title: strings.t('productReady'),
+      subtitle: strings.t('productReadySubtitle'),
+      accentColor: aqua,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: appElevatedCardColor(context),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: appLineColor(context)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: aqua.withValues(alpha: .16),
+                    borderRadius: BorderRadius.circular(17),
+                  ),
+                  child: const Icon(Icons.shopping_basket_rounded, color: aqua),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        productName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          height: 1.2,
+                        ),
+                      ),
+                      if (meta.isNotEmpty) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          meta,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: appMutedColor(context),
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (nutrients.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: nutrients.map((item) {
+                return Chip(
+                  label: Text(item),
+                  backgroundColor: appSecondaryFill(context),
+                  side: BorderSide(color: appLineColor(context)),
+                );
+              }).toList(),
+            ),
+          ],
+          const SizedBox(height: 14),
+          AppButton(
+            label: strings.t('evaluateProduct'),
+            icon: Icons.check_circle_rounded,
+            onPressed: _serverReady ? () => _evaluate(memory) : null,
+            busy: _busy,
+          ),
+          const SizedBox(height: 10),
+          AppButton(
+            label: strings.t('editProductDetails'),
+            icon: Icons.edit_rounded,
+            onPressed: () => _openManualDetails(),
+            secondary: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _manualAddCard() {
+    final strings = AppScope.of(context).strings;
+    return AppCard(
+      title: strings.t('manualAddProduct'),
+      subtitle: strings.t('manualAddProductSubtitle'),
+      accentColor: gold,
+      child: AppButton(
+        label: strings.t('openManualDetails'),
+        icon: Icons.edit_note_rounded,
+        onPressed: () => _openManualDetails(clear: !_hasProductDetails),
+        secondary: true,
+      ),
+    );
+  }
+
+  Widget _manualDetailsCard(ProfileMemory? memory) {
+    final strings = AppScope.of(context).strings;
+    return AppCard(
+      title: strings.t('manualProductDetails'),
+      subtitle: strings.t('manualProductHint'),
+      accentColor: gold,
+      child: Column(
+        children: [
+          AppTextField(label: strings.t('name'), controller: _name),
+          Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  label: strings.t('brand'),
+                  controller: _brand,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppTextField(
+                  label: strings.t('quantity'),
+                  controller: _quantity,
+                ),
+              ),
+            ],
+          ),
+          AppTextField(label: strings.t('category'), controller: _category),
+          AppTextField(
+            label: strings.t('ingredients'),
+            controller: _ingredients,
+            maxLines: 3,
+          ),
+          AppTextField(
+            label: strings.t('declaredAllergens'),
+            controller: _allergens,
+            maxLines: 2,
+          ),
+          AppTextField(
+            label: strings.t('labels'),
+            controller: _labels,
+            maxLines: 2,
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  label: strings.t('nutritionGrade'),
+                  controller: _nutritionGrade,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppTextField(
+                  label: strings.t('novaGroup'),
+                  controller: _novaGroup,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            ],
+          ),
+          AppTextField(
+            label: strings.t('servingSize'),
+            controller: _servingSize,
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  label: strings.t('sugar100'),
+                  controller: _sugar,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppTextField(
+                  label: strings.t('satFat100'),
+                  controller: _satFat,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  label: strings.t('salt100'),
+                  controller: _salt,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppTextField(
+                  label: strings.t('energy100'),
+                  controller: _energy,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  label: strings.t('protein100'),
+                  controller: _protein,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppTextField(
+                  label: strings.t('fiber100'),
+                  controller: _fiber,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            ],
+          ),
+          AppTextField(
+            label: strings.t('sodium100'),
+            controller: _sodium,
+            keyboardType: TextInputType.number,
+          ),
+          AppButton(
+            label: strings.t('evaluateProduct'),
+            icon: Icons.check_circle_rounded,
+            onPressed: _serverReady ? () => _evaluate(memory) : null,
+            busy: _busy,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_scannerOpen) {
       return _ScannerOverlay(
         onClose: () => setState(() => _scannerOpen = false),
-        onBarcode: (value) {
-          _barcode.text = value;
-          setState(() => _scannerOpen = false);
-        },
+        onBarcode: _searchScannedBarcode,
       );
     }
 
@@ -238,6 +574,7 @@ class _ScanScreenState extends State<ScanScreen> {
                     label: strings.t('openCameraScanner'),
                     onPressed: () => setState(() => _scannerOpen = true),
                     secondary: true,
+                    icon: Icons.qr_code_scanner_rounded,
                   ),
                   const SizedBox(height: 10),
                   AppTextField(
@@ -248,6 +585,7 @@ class _ScanScreenState extends State<ScanScreen> {
                     label: strings.t('lookUpProduct'),
                     onPressed: _serverReady ? _lookup : null,
                     busy: _busy,
+                    icon: Icons.search_rounded,
                   ),
                   if (_lookupMessage != null) ...[
                     const SizedBox(height: 12),
@@ -256,140 +594,10 @@ class _ScanScreenState extends State<ScanScreen> {
                 ],
               ),
             ),
-            AppCard(
-              title: strings.t('productDetails'),
-              subtitle: strings.t('manualProductHint'),
-              child: Column(
-                children: [
-                  AppTextField(label: strings.t('name'), controller: _name),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppTextField(
-                          label: strings.t('brand'),
-                          controller: _brand,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AppTextField(
-                          label: strings.t('quantity'),
-                          controller: _quantity,
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppTextField(
-                    label: strings.t('category'),
-                    controller: _category,
-                  ),
-                  AppTextField(
-                    label: strings.t('ingredients'),
-                    controller: _ingredients,
-                    maxLines: 3,
-                  ),
-                  AppTextField(
-                    label: strings.t('declaredAllergens'),
-                    controller: _allergens,
-                    maxLines: 2,
-                  ),
-                  AppTextField(
-                    label: strings.t('labels'),
-                    controller: _labels,
-                    maxLines: 2,
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppTextField(
-                          label: strings.t('nutritionGrade'),
-                          controller: _nutritionGrade,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AppTextField(
-                          label: strings.t('novaGroup'),
-                          controller: _novaGroup,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppTextField(
-                    label: strings.t('servingSize'),
-                    controller: _servingSize,
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppTextField(
-                          label: strings.t('sugar100'),
-                          controller: _sugar,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AppTextField(
-                          label: strings.t('satFat100'),
-                          controller: _satFat,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppTextField(
-                          label: strings.t('salt100'),
-                          controller: _salt,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AppTextField(
-                          label: strings.t('energy100'),
-                          controller: _energy,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppTextField(
-                          label: strings.t('protein100'),
-                          controller: _protein,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AppTextField(
-                          label: strings.t('fiber100'),
-                          controller: _fiber,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppTextField(
-                    label: strings.t('sodium100'),
-                    controller: _sodium,
-                    keyboardType: TextInputType.number,
-                  ),
-                  AppButton(
-                    label: strings.t('evaluateProduct'),
-                    onPressed: _serverReady ? () => _evaluate(memory) : null,
-                    busy: _busy,
-                  ),
-                ],
-              ),
-            ),
+            if (_hasProductDetails && !_manualDetailsOpen)
+              _productSummaryCard(memory),
+            if (!_hasProductDetails && !_manualDetailsOpen) _manualAddCard(),
+            if (_manualDetailsOpen) _manualDetailsCard(memory),
             if (_evaluation != null) _EvaluationCard(evaluation: _evaluation!),
           ],
         );
@@ -398,11 +606,18 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 }
 
-class _ScannerOverlay extends StatelessWidget {
+class _ScannerOverlay extends StatefulWidget {
   const _ScannerOverlay({required this.onClose, required this.onBarcode});
 
   final VoidCallback onClose;
   final ValueChanged<String> onBarcode;
+
+  @override
+  State<_ScannerOverlay> createState() => _ScannerOverlayState();
+}
+
+class _ScannerOverlayState extends State<_ScannerOverlay> {
+  var _handled = false;
 
   @override
   Widget build(BuildContext context) {
@@ -411,11 +626,13 @@ class _ScannerOverlay extends StatelessWidget {
       children: [
         MobileScanner(
           onDetect: (capture) {
+            if (_handled) return;
             final value = capture.barcodes.isEmpty
                 ? null
                 : capture.barcodes.first.rawValue;
             if (value != null && value.isNotEmpty) {
-              onBarcode(value);
+              _handled = true;
+              widget.onBarcode(value);
             }
           },
         ),
@@ -425,7 +642,7 @@ class _ScannerOverlay extends StatelessWidget {
           bottom: 28,
           child: AppButton(
             label: strings.t('closeScanner'),
-            onPressed: onClose,
+            onPressed: widget.onClose,
           ),
         ),
       ],
@@ -451,6 +668,10 @@ class _EvaluationCard extends StatelessWidget {
       'use_with_caution' => Icons.warning_rounded,
       _ => Icons.check_circle_rounded,
     };
+    final dataQualityLevel = evaluation.dataQualityLevel;
+    final showDataQualityNotice =
+        evaluation.hasDataQuality &&
+        (dataQualityLevel == 'low' || dataQualityLevel == 'missing');
 
     return AppCard(
       title: strings.t('decision'),
@@ -482,6 +703,18 @@ class _EvaluationCard extends StatelessWidget {
               ],
             ),
           ),
+          if (evaluation.hasDataQuality) ...[
+            const SizedBox(height: 12),
+            _DataQualityBadge(level: dataQualityLevel),
+          ],
+          if (showDataQualityNotice) ...[
+            const SizedBox(height: 12),
+            NoticeBox(
+              message: strings.dataQualityNotice(dataQualityLevel),
+              warning: true,
+              icon: Icons.fact_check_rounded,
+            ),
+          ],
           if (evaluation.reasons.isNotEmpty)
             _EvaluationSection(
               title: strings.t('reasons'),
@@ -501,6 +734,52 @@ class _EvaluationCard extends StatelessWidget {
           NoticeBox(
             message: strings.t('educationalOnly'),
             warning: evaluation.decision != 'recommended',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DataQualityBadge extends StatelessWidget {
+  const _DataQualityBadge({required this.level});
+
+  final String level;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppScope.of(context).strings;
+    final color = switch (level) {
+      'high' => green,
+      'medium' => aqua,
+      'low' => amber,
+      _ => danger,
+    };
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+      decoration: BoxDecoration(
+        color: color.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? .16 : .09,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: .26)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.analytics_rounded, color: color, size: 20),
+          const SizedBox(width: 9),
+          Text(
+            '${strings.t('dataQuality')}: ',
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+          Expanded(
+            child: Text(
+              strings.dataQuality(level),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
           ),
         ],
       ),

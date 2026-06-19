@@ -8,8 +8,8 @@ import 'features/auth/data/auth_repository.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/auth/presentation/screens/auth_screen.dart';
 import 'features/main/presentation/screens/main_shell.dart';
-import 'features/meal_logs/data/meal_log_repository.dart';
 import 'features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'features/product_checks/data/product_check_repository.dart';
 import 'features/profile/data/profile_repository.dart';
 import 'features/settings/presentation/cubit/locale_cubit.dart';
 import 'features/settings/presentation/cubit/theme_cubit.dart';
@@ -50,7 +50,7 @@ class BioDietixApp extends StatelessWidget {
           ),
         ),
         RepositoryProvider(
-          create: (_) => MealLogRepository(
+          create: (_) => ProductCheckRepository(
             config: config,
             localStore: localStore,
             firebaseReady: firebaseReady,
@@ -118,7 +118,8 @@ class BioDietixApp extends StatelessWidget {
       brightness: brightness,
       primary: green,
       secondary: gold,
-      surface: isDark ? const Color(0xFF182119) : const Color(0xFFFFFCF6),
+      surface: isDark ? const Color(0xFF10231B) : porcelain,
+      error: danger,
     );
     final textColor = isDark ? const Color(0xFFF7F0E2) : ink;
     final labelColor = isDark ? const Color(0xFFC1B8A8) : muted;
@@ -126,29 +127,76 @@ class BioDietixApp extends StatelessWidget {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
-      scaffoldBackgroundColor: isDark ? const Color(0xFF0D130F) : background,
+      scaffoldBackgroundColor: isDark ? const Color(0xFF07120E) : background,
       colorScheme: scheme,
+      fontFamily: 'Roboto',
+      appBarTheme: AppBarTheme(
+        elevation: 0,
+        centerTitle: false,
+        backgroundColor: Colors.transparent,
+        foregroundColor: textColor,
+        titleTextStyle: TextStyle(
+          color: textColor,
+          fontSize: 20,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 78,
+        height: 86,
         elevation: 0,
         backgroundColor: isDark
-            ? const Color(0xFF111911)
-            : const Color(0xFFFFFCF6),
+            ? const Color(0xFF0B1712)
+            : const Color(0xFFFFFBF4),
         indicatorColor: isDark
-            ? const Color(0xFF2A412B)
-            : const Color(0xFFEAF3D9),
+            ? const Color(0xFF1F4C3B)
+            : const Color(0xFFE6F2DA),
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
         ),
         labelTextStyle: WidgetStateProperty.all(
-          TextStyle(color: textColor, fontWeight: FontWeight.w700),
+          TextStyle(
+            color: textColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color: selected ? green : labelColor,
+            size: selected ? 27 : 25,
+          );
+        }),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: isDark ? const Color(0xFF07120E) : background,
+        modalBackgroundColor: isDark ? const Color(0xFF07120E) : background,
+        showDragHandle: false,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
       ),
       textTheme: TextTheme(
+        headlineSmall: TextStyle(
+          color: textColor,
+          fontSize: 30,
+          height: 1.08,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0,
+        ),
         titleLarge: TextStyle(
           color: textColor,
           fontSize: 21,
+          height: 1.15,
           fontWeight: FontWeight.w900,
+          letterSpacing: 0,
+        ),
+        titleMedium: TextStyle(
+          color: textColor,
+          fontSize: 16,
+          height: 1.22,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0,
         ),
         labelSmall: TextStyle(
           color: labelColor,
@@ -156,36 +204,69 @@ class BioDietixApp extends StatelessWidget {
           fontWeight: FontWeight.w900,
           letterSpacing: 0,
         ),
-        bodyMedium: TextStyle(color: textColor, height: 1.45),
+        bodyMedium: TextStyle(
+          color: textColor,
+          height: 1.45,
+          fontWeight: FontWeight.w600,
+        ),
+        bodySmall: TextStyle(
+          color: labelColor,
+          height: 1.35,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? const Color(0xFF111A13) : const Color(0xFFFFF8EA),
+        fillColor: isDark ? const Color(0xFF0C1A14) : const Color(0xFFFFF8EA),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 15,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(
-            color: isDark ? const Color(0xFF334333) : const Color(0xFFE5D8C5),
+            color: isDark ? const Color(0xFF2D4439) : const Color(0xFFE7D8C2),
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(
-            color: isDark ? const Color(0xFF334333) : const Color(0xFFE5D8C5),
+            color: isDark ? const Color(0xFF2D4439) : const Color(0xFFE7D8C2),
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: green, width: 1.5),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: aqua, width: 1.7),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: danger),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: danger, width: 1.7),
+        ),
+        prefixIconColor: labelColor,
         hintStyle: TextStyle(color: labelColor),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: isDark
+            ? const Color(0xFF1B3026)
+            : const Color(0xFFF5ECD9),
+        selectedColor: isDark
+            ? const Color(0xFF1F4C3B)
+            : const Color(0xFFE6F2DA),
+        side: BorderSide(color: isDark ? const Color(0xFF2D4439) : line),
+        labelStyle: TextStyle(color: textColor, fontWeight: FontWeight.w700),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: isDark ? const Color(0xFFF7F0E2) : deepGreen,
+        contentTextStyle: TextStyle(
+          color: isDark ? deepGreen : Colors.white,
+          fontWeight: FontWeight.w800,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
     );
   }

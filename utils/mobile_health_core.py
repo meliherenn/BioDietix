@@ -159,6 +159,16 @@ PRODUCT_FIELD_DEFAULTS = {
     "fiber_g_100g": None,
 }
 
+NUTRIENT_FIELD_LABELS = {
+    "energy_kcal_100g": "energy_kcal_100g",
+    "sugar_g_100g": "sugar_g_100g",
+    "saturated_fat_g_100g": "saturated_fat_g_100g",
+    "salt_g_100g": "salt_g_100g",
+    "sodium_mg_100g": "sodium_mg_100g",
+    "protein_g_100g": "protein_g_100g",
+    "fiber_g_100g": "fiber_g_100g",
+}
+
 
 def _clean_text(value):
     if value is None:
@@ -525,6 +535,48 @@ def _record_signal(reasons, alternatives, reason, alternative, severity, points,
     return max(severity, level), points + level
 
 
+def _product_data_quality(normalized_product, nutrient_map, nova_group, nutrition_grade):
+    measured_nutrients = [
+        label
+        for key, label in NUTRIENT_FIELD_LABELS.items()
+        if nutrient_map.get(key) is not None
+    ]
+    missing_nutrients = [
+        label
+        for key, label in NUTRIENT_FIELD_LABELS.items()
+        if nutrient_map.get(key) is None
+    ]
+    summary_signals = []
+    if nova_group is not None:
+        summary_signals.append("nova_group")
+    if nutrition_grade:
+        summary_signals.append("nutrition_grade")
+
+    has_ingredient_text = bool(_clean_text(normalized_product.get("ingredients_text")))
+    has_identity_text = any(
+        _clean_text(normalized_product.get(key))
+        for key in ("name", "brand", "category", "labels", "allergens_text")
+    )
+
+    measured_count = len(measured_nutrients)
+    if measured_count >= 4:
+        level = "high"
+    elif measured_count >= 2 or (measured_count >= 1 and summary_signals):
+        level = "medium"
+    elif measured_count >= 1 or summary_signals or has_ingredient_text or has_identity_text:
+        level = "low"
+    else:
+        level = "missing"
+
+    return {
+        "level": level,
+        "measured_nutrients": measured_nutrients,
+        "missing_nutrients": missing_nutrients,
+        "summary_signals": summary_signals,
+        "has_ingredient_text": has_ingredient_text,
+    }
+
+
 def evaluate_product_for_profile(product, profile_memory):
     """Evaluate whether a scanned product fits the stored BioDietix profile."""
 
@@ -552,6 +604,22 @@ def evaluate_product_for_profile(product, profile_memory):
     nova_group = _to_number(normalized_product.get("nova_group"))
     nutrition_grade = _normalized(normalized_product.get("nutrition_grade"))
     product_text = _combined_product_text(normalized_product)
+    nutrient_map = {
+        "energy_kcal_100g": energy,
+        "sugar_g_100g": sugar,
+        "saturated_fat_g_100g": saturated_fat,
+        "salt_g_100g": salt,
+        "sodium_mg_100g": sodium,
+        "protein_g_100g": protein,
+        "fiber_g_100g": fiber,
+    }
+    data_quality = _product_data_quality(
+        normalized_product,
+        nutrient_map,
+        nova_group,
+        nutrition_grade,
+    )
+    measured_nutrient_count = len(data_quality["measured_nutrients"])
 
     bmi = _to_number(profile_memory.get("bmi") or profile_memory.get("BMI"))
     blood_sugar_sensitive = _profile_contains(
@@ -582,17 +650,10 @@ def evaluate_product_for_profile(product, profile_memory):
     thyroid_sensitive = _profile_contains(profile_memory, "Thyroid", "Metabolism")
     risk_points = 0
 
-    nutrient_values = [sugar, saturated_fat, salt, sodium, energy, protein, fiber]
-    if not any(value is not None for value in nutrient_values):
-        severity, risk_points = _record_signal(
-            reasons,
-            alternatives,
-            {"code": "nutrition_data_missing"},
-            "fresh_whole_food",
-            severity,
-            risk_points,
-            1,
-        )
+    if measured_nutrient_count == 0:
+        reasons.append({"code": "nutrition_data_missing"})
+        _add_unique(alternatives, {"code": "fresh_whole_food"})
+        severity = max(severity, 1)
 
     if sugar is not None:
         if sugar >= 35:
@@ -809,11 +870,19 @@ def evaluate_product_for_profile(product, profile_memory):
     else:
         decision = "recommended"
 
+    if (
+        decision == "not_recommended"
+        and measured_nutrient_count == 0
+        and not conflicts
+    ):
+        decision = "use_with_caution"
+
     return {
         "decision": decision,
         "allergy_conflicts": conflicts,
         "reasons": reasons,
         "positives": positives,
         "alternatives": alternatives,
+        "data_quality": data_quality,
         "medical_note": "This is educational guidance, not a medical diagnosis.",
     }
