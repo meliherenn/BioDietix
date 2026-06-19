@@ -4,6 +4,16 @@ BioDietix Mobile, kan testi ve alerji bağlamını telefonda saklayan, ürün
 barkodlarını tarayan ve kişisel profile göre ürün uygunluğu gösteren Flutter
 Android uygulamasıdır.
 
+## Ekran Görüntüleri
+
+| Ana ekran | Raporlar | Ürün tarama |
+| --- | --- | --- |
+| ![BioDietix ana ekran](../docs/screenshots/biodietix-05-home.png) | ![BioDietix rapor ekranı](../docs/screenshots/biodietix-07-reports.png) | ![BioDietix ürün tarama](../docs/screenshots/biodietix-08-scan.png) |
+
+| Ayarlar | Koyu tema | Türkçe arayüz |
+| --- | --- | --- |
+| ![BioDietix görünüm ve dil ayarları](../docs/screenshots/biodietix-09-settings-appearance.png) | ![BioDietix koyu tema](../docs/screenshots/biodietix-10-settings-dark.png) | ![BioDietix Türkçe dil](../docs/screenshots/biodietix-11-settings-turkish.png) |
+
 ## Özellikler
 
 - Firebase Email/Password ve Google giriş.
@@ -14,6 +24,15 @@ Android uygulamasıdır.
 - Aynı backend üzerinden alerji testi PDF analizi.
 - Kamera ile QR/barkod tarama.
 - Open Food Facts veya manuel ürün bilgisi ile uygunluk kararı.
+
+## Kullanım Akışı
+
+1. Kullanıcı Firebase hesabıyla giriş yapar.
+2. Profil bilgileri, alerjiler ve son laboratuvar sonucu telefonda saklanır.
+3. Raporlar ekranından kan testi veya alerji PDF'i yüklenir.
+4. Ürün tarama ekranında barkod/QR okutulur veya ürün bilgisi manuel girilir.
+5. Uygulama ürünü son sağlık profiline ve alerji bilgisine göre değerlendirir.
+6. Ayarlar ekranından dil ve tema anında değiştirilebilir.
 
 ## Gereksinimler
 
