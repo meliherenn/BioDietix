@@ -188,6 +188,15 @@ Release APK üretin:
 flutter build apk --release --flavor prod --dart-define=FLAVOR=prod
 ```
 
+App Check zorunluluğu geçici olarak kapalı sideload testinde:
+
+```bash
+flutter build apk --release --flavor prod \
+  --dart-define=FLAVOR=prod \
+  --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=false
+```
+
 APK çıktısı:
 
 ```text
@@ -203,7 +212,10 @@ adb install -r mobile/build/app/outputs/flutter-apk/app-prod-release.apk
 Play Store için App Bundle:
 
 ```bash
-flutter build appbundle --release --flavor prod --dart-define=FLAVOR=prod
+flutter build appbundle --release --flavor prod \
+  --dart-define=FLAVOR=prod \
+  --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
 ## API Endpointleri

@@ -13,6 +13,10 @@ enum AppFlavor {
 
 class AppConfig {
   static const defaultApiUrl = 'https://biodietix-ml.onrender.com';
+  static const appCheckEnabled = bool.fromEnvironment(
+    'BIODIETIX_APP_CHECK_ENABLED',
+    defaultValue: true,
+  );
 
   const AppConfig({required this.flavor, required this.apiUrl});
 

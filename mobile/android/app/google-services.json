@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "333229965336-r7616oo0pdngkgmk73bbn1k74tdk52rb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.biodietix.biodietix_mobile",
+            "certificate_hash": "cb5c83de171427af87ae2b8427165ac3bfb45af6"
+          }
+        },
+        {
           "client_id": "333229965336-0ssorfh1egdfmfn7p6nc1ujcupu5nd0a.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -59,3 +59,7 @@ approved retention/logging policy.
 
 Android release builds intentionally fail when `android/key.properties` is
 missing. Never ship a debug-signed artifact.
+
+Use `BIODIETIX_APP_CHECK_ENABLED=false` only for controlled sideload testing
+against a backend where App Check is also disabled. Play/Internal Testing and
+public production builds must set it to `true`.

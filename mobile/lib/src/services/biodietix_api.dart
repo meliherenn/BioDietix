@@ -5,6 +5,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
+import '../core/config/app_config.dart';
 import '../models/personal_info.dart';
 import '../models/product.dart';
 import '../models/product_evaluation.dart';
@@ -38,6 +39,7 @@ class BioDietixApi {
     Future<String?> Function()? accessTokenProvider,
     Future<String?> Function()? appCheckTokenProvider,
     http.Client? client,
+    this.appCheckEnabled = AppConfig.appCheckEnabled,
     this.requestTimeout = const Duration(seconds: 30),
     this.uploadTimeout = const Duration(seconds: 90),
   }) : baseUrl = apiUrl.replaceAll(RegExp(r'/+$'), ''),
@@ -48,6 +50,7 @@ class BioDietixApi {
   final String baseUrl;
   final Duration requestTimeout;
   final Duration uploadTimeout;
+  final bool appCheckEnabled;
   final Future<String?> Function() _accessTokenProvider;
   final Future<String?> Function() _appCheckTokenProvider;
   final http.Client _client;
@@ -181,11 +184,29 @@ class BioDietixApi {
         message: 'Authentication session is unavailable. Please sign in again.',
       );
     }
-    final appCheckToken = await _appCheckTokenProvider();
+    if (!appCheckEnabled) {
+      return {'Authorization': 'Bearer $token'};
+    }
+
+    String? appCheckToken;
+    try {
+      appCheckToken = await _appCheckTokenProvider();
+    } on Object {
+      throw const BioDietixApiException(
+        statusCode: 403,
+        message:
+            'App verification could not be completed. Please check your connection and try again.',
+      );
+    }
+    if (appCheckToken == null || appCheckToken.isEmpty) {
+      throw const BioDietixApiException(
+        statusCode: 403,
+        message: 'App verification is unavailable. Please try again.',
+      );
+    }
     return {
       'Authorization': 'Bearer $token',
-      if (appCheckToken != null && appCheckToken.isNotEmpty)
-        'X-Firebase-AppCheck': appCheckToken,
+      'X-Firebase-AppCheck': appCheckToken,
     };
   }
 

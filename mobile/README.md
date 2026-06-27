@@ -95,13 +95,23 @@ flutter build apk --debug --flavor dev --dart-define=FLAVOR=dev
 Release APK:
 
 ```bash
-flutter build apk --release --flavor prod --dart-define=FLAVOR=prod
+flutter build apk --release --flavor prod \
+  --dart-define=FLAVOR=prod \
+  --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=false
 ```
+
+Bu `false` ayarı yalnız App Check zorunluluğu kapalı deneme/sideload dağıtımı
+içindir. Play Internal Testing ve production build'lerinde App Check açık
+olmalıdır:
 
 Play Store app bundle:
 
 ```bash
-flutter build appbundle --release --flavor prod --dart-define=FLAVOR=prod
+flutter build appbundle --release --flavor prod \
+  --dart-define=FLAVOR=prod \
+  --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
 APK çıktıları:

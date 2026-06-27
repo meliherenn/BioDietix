@@ -31,7 +31,7 @@ Future<void> main() async {
     }
   }
 
-  if (firebaseReady) {
+  if (firebaseReady && AppConfig.appCheckEnabled) {
     await FirebaseAppCheck.instance.activate(
       providerAndroid: config.flavor == AppFlavor.prod
           ? const AndroidPlayIntegrityProvider()
