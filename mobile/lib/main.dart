@@ -1,3 +1,4 @@
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -28,6 +29,17 @@ Future<void> main() async {
     } on Exception {
       firebaseReady = false;
     }
+  }
+
+  if (firebaseReady) {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: config.flavor == AppFlavor.prod
+          ? const AndroidPlayIntegrityProvider()
+          : const AndroidDebugProvider(),
+      providerApple: config.flavor == AppFlavor.prod
+          ? const AppleAppAttestWithDeviceCheckFallbackProvider()
+          : const AppleDebugProvider(),
+    );
   }
 
   runApp(

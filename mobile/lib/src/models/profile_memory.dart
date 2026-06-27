@@ -1,3 +1,5 @@
+import 'personal_info.dart';
+
 class ProfileMemory {
   const ProfileMemory({
     required this.raw,
@@ -15,11 +17,34 @@ class ProfileMemory {
   final List<String> foodsToLimit;
   final List<String> allergies;
 
+  String get dataQualityStatus {
+    final value = raw['data_quality'];
+    if (value is! Map) return '';
+    return value['status']?.toString() ?? '';
+  }
+
   Map<String, dynamic> toJson() => raw;
 
   ProfileMemory copyWithAllergies(List<String> nextAllergies) {
     final updated = Map<String, dynamic>.from(raw);
     updated['allergies'] = nextAllergies;
+    return ProfileMemory.fromJson(updated);
+  }
+
+  ProfileMemory copyWithPersonalInfo(PersonalInfo personalInfo) {
+    final updated = Map<String, dynamic>.from(raw);
+    final bmi = personalInfo.weightKg != null && personalInfo.heightCm != null
+        ? personalInfo.weightKg! /
+              ((personalInfo.heightCm! / 100) * (personalInfo.heightCm! / 100))
+        : null;
+    updated['personal_info'] = {
+      'Gender': personalInfo.gender,
+      'Age': personalInfo.age,
+      'Weight_kg': personalInfo.weightKg,
+      'Height_cm': personalInfo.heightCm,
+      'BMI': bmi,
+    };
+    updated['bmi'] = bmi;
     return ProfileMemory.fromJson(updated);
   }
 

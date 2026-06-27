@@ -1,0 +1,13 @@
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+exclude = [".venv", "mobile"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"api.py" = ["B008"]
+"utils/api_auth.py" = ["B008"]
+"utils/api_security.py" = ["B008"]

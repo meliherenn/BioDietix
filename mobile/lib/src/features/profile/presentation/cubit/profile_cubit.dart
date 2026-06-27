@@ -258,4 +258,11 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(current.copyWith(saving: false, error: error.toString()));
     }
   }
+
+  Future<void> deleteAllUserData() async {
+    final uid = _uid;
+    final current = state;
+    if (uid == null || current is! ProfileLoaded) return;
+    await _repository.deleteAllUserData(uid);
+  }
 }

@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import json
 import re
+import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -20,6 +22,9 @@ import pandas as pd
 
 from biodietix import extract_pdf_text
 
+_PRODUCT_CACHE = {}
+_PRODUCT_CACHE_LOCK = threading.Lock()
+_PRODUCT_CACHE_TTL_SECONDS = 15 * 60
 
 COMMON_ALLERGIES = [
     "milk",
@@ -262,7 +267,8 @@ def normalize_allergy_name(value):
         if keyword and keyword in text:
             return canonical
 
-    return None
+    # Preserve unsupported user-entered allergens instead of silently dropping them.
+    return text[:100]
 
 
 def normalize_allergies(values):
@@ -365,13 +371,19 @@ def build_profile_memory(results, allergies=None, extracted_values=None):
 
     profile_memory = {
         "schema_version": 1,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
         "personal_info": personal_info,
+        "bmi": personal_info.get("BMI"),
         "health_profile": _clean_text(row.get("Health_Profile")),
         "nutrition_recommendation": _clean_text(row.get("Nutrition_Recommendation")),
         "foods_to_increase": _list_from_csv_text(row.get("Foods_To_Increase")),
         "foods_to_limit": _list_from_csv_text(row.get("Foods_To_Limit")),
         "risk_levels": risk_levels,
+        "data_quality": {
+            "status": _json_safe(row.get("Data_Quality_Status")),
+            "observed_lab_count": _json_safe(row.get("Observed_Lab_Count")),
+            "observed_lab_domains": _json_safe(row.get("Observed_Lab_Domains")),
+        },
         "lab_values": lab_values,
         "allergies": normalize_allergies(allergies or []),
     }
@@ -436,6 +448,12 @@ def lookup_open_food_facts_product(barcode, timeout=8):
     if not clean_barcode:
         return None
 
+    now = time.monotonic()
+    with _PRODUCT_CACHE_LOCK:
+        cached = _PRODUCT_CACHE.get(clean_barcode)
+        if cached and cached[0] > now:
+            return cached[1]
+
     fields = ",".join(
         [
             "code",
@@ -463,9 +481,7 @@ def lookup_open_food_facts_product(barcode, timeout=8):
     encoded_fields = urllib.parse.quote(fields, safe=",")
     urls = [
         f"https://world.openfoodfacts.org/api/v2/product/{clean_barcode}.json?fields={encoded_fields}&lc=tr",
-        f"https://tr.openfoodfacts.org/api/v2/product/{clean_barcode}.json?fields={encoded_fields}&lc=tr",
         f"https://world.openfoodfacts.org/api/v0/product/{clean_barcode}.json",
-        f"https://tr.openfoodfacts.org/api/v0/product/{clean_barcode}.json",
     ]
 
     for url in urls:
@@ -475,15 +491,30 @@ def lookup_open_food_facts_product(barcode, timeout=8):
         )
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
-                payload = json.loads(response.read().decode("utf-8"))
+                response_body = response.read(2_000_001)
+                if len(response_body) > 2_000_000:
+                    raise ValueError("Product lookup response exceeded 2 MB.")
+                payload = json.loads(response_body.decode("utf-8"))
         except urllib.error.HTTPError as exc:
             if exc.code == 404:
                 continue
             raise
 
         if payload.get("status") == 1 and payload.get("product"):
-            return product_from_open_food_facts(payload["product"])
+            product = product_from_open_food_facts(payload["product"])
+            with _PRODUCT_CACHE_LOCK:
+                if len(_PRODUCT_CACHE) >= 1024:
+                    expired = [key for key, value in _PRODUCT_CACHE.items() if value[0] <= now]
+                    for key in expired or list(_PRODUCT_CACHE)[:256]:
+                        _PRODUCT_CACHE.pop(key, None)
+                _PRODUCT_CACHE[clean_barcode] = (
+                    now + _PRODUCT_CACHE_TTL_SECONDS,
+                    product,
+                )
+            return product
 
+    with _PRODUCT_CACHE_LOCK:
+        _PRODUCT_CACHE[clean_barcode] = (now + 60, None)
     return None
 
 
@@ -506,7 +537,7 @@ def _find_allergy_conflicts(product, allergies):
     product_text = _combined_product_text(product)
     conflicts = []
     for allergy in normalize_allergies(allergies):
-        keywords = ALLERGEN_KEYWORDS.get(allergy, ())
+        keywords = ALLERGEN_KEYWORDS.get(allergy, (allergy,))
         if any(keyword in product_text for keyword in keywords):
             conflicts.append(allergy)
     return conflicts
@@ -621,7 +652,13 @@ def evaluate_product_for_profile(product, profile_memory):
     )
     measured_nutrient_count = len(data_quality["measured_nutrients"])
 
-    bmi = _to_number(profile_memory.get("bmi") or profile_memory.get("BMI"))
+    personal_info = profile_memory.get("personal_info") or {}
+    bmi = _to_number(
+        profile_memory.get("bmi")
+        or profile_memory.get("BMI")
+        or personal_info.get("BMI")
+        or personal_info.get("bmi")
+    )
     blood_sugar_sensitive = _profile_contains(
         profile_memory,
         "Blood Sugar",
@@ -640,12 +677,16 @@ def evaluate_product_for_profile(product, profile_memory):
         "Kidney",
         "Muscle",
     )
-    weight_sensitive = _profile_contains(
-        profile_memory,
-        "Weight Management",
-        "Obesity",
-        "BMI",
-    ) or (bmi is not None and bmi >= 25)
+    weight_sensitive = (
+        bmi >= 25
+        if bmi is not None
+        else _profile_contains(
+            profile_memory,
+            "Weight Management",
+            "Obesity",
+            "BMI",
+        )
+    )
     diet_quality_sensitive = _profile_contains(profile_memory, "Diet Quality")
     thyroid_sensitive = _profile_contains(profile_memory, "Thyroid", "Metabolism")
     risk_points = 0

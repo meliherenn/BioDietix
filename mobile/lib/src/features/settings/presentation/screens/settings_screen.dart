@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -9,6 +12,7 @@ import '../../../../core/widgets/ui.dart';
 import '../../../../i18n.dart';
 import '../../../../services/biodietix_api.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../product_checks/presentation/cubit/product_check_cubit.dart';
 import '../../../profile/presentation/cubit/profile_cubit.dart';
 import '../cubit/locale_cubit.dart';
 import '../cubit/theme_cubit.dart';
@@ -58,6 +62,123 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<bool> _confirmDestructive({
+    required String title,
+    required String message,
+    required String action,
+  }) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(AppScope.of(context).strings.t('cancel')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(action),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _clearHealthData() async {
+    final strings = AppScope.of(context).strings;
+    final confirmed = await _confirmDestructive(
+      title: strings.t('deleteHealthData'),
+      message: strings.t('deleteHealthDataConfirm'),
+      action: strings.t('delete'),
+    );
+    if (!confirmed || !mounted) return;
+    await context.read<ProfileCubit>().clearHealthData();
+  }
+
+  Future<void> _deleteAccount() async {
+    final strings = AppScope.of(context).strings;
+    final confirmed = await _confirmDestructive(
+      title: strings.t('deleteAccount'),
+      message: strings.t('deleteAccountConfirm'),
+      action: strings.t('delete'),
+    );
+    if (!confirmed || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await context.read<ProfileCubit>().deleteAllUserData();
+      if (!mounted) return;
+      await context.read<AuthCubit>().deleteAccount();
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      final message = error.code == 'requires-recent-login'
+          ? strings.t('deleteAccountRecentLogin')
+          : strings.t('deleteAccountFailed');
+      showAppSnack(context, message);
+    } catch (_) {
+      if (mounted) showAppSnack(context, strings.t('deleteAccountFailed'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _exportData() async {
+    final strings = AppScope.of(context).strings;
+    final profileState = context.read<ProfileCubit>().state;
+    final productState = context.read<ProductCheckCubit>().state;
+    final payload = <String, dynamic>{
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
+      'email': widget.userEmail,
+      if (profileState is ProfileLoaded) ...{
+        'personalInfo': profileState.personalInfo.toJson(),
+        'allergies': profileState.allergies,
+        'profileMemory': profileState.profileMemory?.toJson(),
+        'extractedValues': profileState.extractedValues,
+        'profilePhotoUrl': profileState.photoUrl,
+      },
+      'productChecks': productState is ProductCheckLoaded
+          ? productState.items.map((item) => item.toJson()).toList()
+          : <Object>[],
+    };
+    final json = const JsonEncoder.withIndent('  ').convert(payload);
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AppBottomSheetScaffold(
+        title: strings.t('exportData'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            NoticeBox(
+              message: strings.t('exportDataPrivacy'),
+              icon: Icons.privacy_tip_rounded,
+              warning: true,
+            ),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * .5,
+              ),
+              child: SingleChildScrollView(child: SelectableText(json)),
+            ),
+            AppButton(
+              label: strings.t('copyExport'),
+              icon: Icons.copy_rounded,
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: json));
+                if (context.mounted) Navigator.of(context).pop();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _showPhotoSourceSheet() async {
     final strings = AppScope.of(context).strings;
     await showModalBottomSheet<void>(
@@ -99,8 +220,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       imageQuality: 84,
     );
     if (file == null) return;
+    final image = File(file.path);
+    if (await image.length() > 5 * 1024 * 1024) {
+      if (mounted) {
+        showAppSnack(
+          context,
+          AppScope.of(context).strings.t('profilePhotoTooLarge'),
+        );
+      }
+      return;
+    }
     if (mounted) {
-      await context.read<ProfileCubit>().uploadProfilePhoto(File(file.path));
+      await context.read<ProfileCubit>().uploadProfilePhoto(image);
     }
   }
 
@@ -297,6 +428,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               children: [
                 AppButton(
+                  label: strings.t('exportData'),
+                  icon: Icons.download_rounded,
+                  onPressed: _exportData,
+                  secondary: true,
+                ),
+                const SizedBox(height: 10),
+                AppButton(
                   label: strings.t('signOut'),
                   icon: Icons.logout_rounded,
                   onPressed: context.read<AuthCubit>().signOut,
@@ -306,7 +444,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 AppButton(
                   label: strings.t('deleteHealthData'),
                   icon: Icons.delete_outline_rounded,
-                  onPressed: context.read<ProfileCubit>().clearHealthData,
+                  onPressed: _busy ? null : _clearHealthData,
+                  secondary: true,
+                  destructive: true,
+                ),
+                const SizedBox(height: 10),
+                AppButton(
+                  label: strings.t('deleteAccount'),
+                  icon: Icons.person_remove_rounded,
+                  onPressed: _busy ? null : _deleteAccount,
                   secondary: true,
                   destructive: true,
                 ),

@@ -313,8 +313,29 @@ const _values = {
     'profileSavedInline':
         'Profile saved. These values will be used for the next blood PDF and product checks.',
     'profileSaveFailed': 'Profile could not be saved.',
+    'invalidProfileValues':
+        'Enter an age from 18 to 120, weight up to 350 kg, and height up to 250 cm.',
+    'limitedLabDataWarning':
+        'Only a limited set of lab values was found. The result does not mean that overall health risk is low.',
     'healthDataCleared': 'Health data deleted from this phone.',
     'deleteHealthData': 'Delete health data',
+    'exportData': 'Export my data',
+    'exportDataPrivacy':
+        'This export contains sensitive health data. Store and share it securely.',
+    'copyExport': 'Copy JSON export',
+    'healthUploadConsentTitle': 'Process health report',
+    'healthUploadConsentBody':
+        'The selected PDF will be sent securely to the BioDietix API for transient processing. Do not upload another person’s report. Continue?',
+    'continueAction': 'Continue',
+    'deleteHealthDataConfirm':
+        'Delete saved profile, lab values, allergies, and profile photo from this device and cloud?',
+    'deleteAccount': 'Delete account',
+    'deleteAccountConfirm':
+        'Permanently delete all BioDietix data and the Firebase account? This cannot be undone.',
+    'deleteAccountRecentLogin':
+        'For security, sign out, sign in again, and retry account deletion.',
+    'deleteAccountFailed': 'Account deletion could not be completed.',
+    'cancel': 'Cancel',
     'signOut': 'Sign out',
     'testsSubtitle':
         'Use optional blood or allergy reports to tune the diet profile behind your food recommendations.',
@@ -474,6 +495,7 @@ const _values = {
     'uploadPhotoGallery': 'Upload photo from gallery',
     'uploadPhotoCamera': 'Take profile photo',
     'profilePhotoUpdated': 'Profile photo updated.',
+    'profilePhotoTooLarge': 'Profile photo must be smaller than 5 MB.',
     'language': 'Language',
     'english': 'English',
     'turkish': 'Turkish',
@@ -655,8 +677,29 @@ const _values = {
     'profileSavedInline':
         'Profil kaydedildi. Bu değerler sonraki kan PDF’i ve ürün kontrollerinde kullanılacak.',
     'profileSaveFailed': 'Profil kaydedilemedi.',
+    'invalidProfileValues':
+        '18-120 arası yaş, en fazla 350 kg kilo ve en fazla 250 cm boy girin.',
+    'limitedLabDataWarning':
+        'Yalnızca sınırlı sayıda laboratuvar değeri bulundu. Sonuç, genel sağlık riskinin düşük olduğu anlamına gelmez.',
     'healthDataCleared': 'Sağlık verileri bu telefondan silindi.',
     'deleteHealthData': 'Sağlık verilerini sil',
+    'exportData': 'Verilerimi dışa aktar',
+    'exportDataPrivacy':
+        'Bu dışa aktarım hassas sağlık verileri içerir. Güvenli biçimde saklayın ve paylaşın.',
+    'copyExport': 'JSON dışa aktarımını kopyala',
+    'healthUploadConsentTitle': 'Sağlık raporunu işle',
+    'healthUploadConsentBody':
+        'Seçilen PDF geçici işleme için güvenli biçimde BioDietix API’ye gönderilecektir. Başka bir kişiye ait raporu yüklemeyin. Devam edilsin mi?',
+    'continueAction': 'Devam et',
+    'deleteHealthDataConfirm':
+        'Kayıtlı profil, laboratuvar değerleri, alerjiler ve profil fotoğrafı bu cihazdan ve buluttan silinsin mi?',
+    'deleteAccount': 'Hesabı sil',
+    'deleteAccountConfirm':
+        'Tüm BioDietix verileri ve Firebase hesabı kalıcı olarak silinsin mi? Bu işlem geri alınamaz.',
+    'deleteAccountRecentLogin':
+        'Güvenlik için çıkış yapın, yeniden giriş yapın ve hesap silmeyi tekrar deneyin.',
+    'deleteAccountFailed': 'Hesap silme tamamlanamadı.',
+    'cancel': 'İptal',
     'signOut': 'Çıkış yap',
     'testsSubtitle':
         'Yemek önerilerinin arkasındaki diyet profilini hassaslaştırmak için isteğe bağlı kan ya da alerji raporu ekle.',
@@ -815,6 +858,7 @@ const _values = {
     'uploadPhotoGallery': 'Galeriden fotoğraf yükle',
     'uploadPhotoCamera': 'Profil fotoğrafı çek',
     'profilePhotoUpdated': 'Profil fotoğrafı güncellendi.',
+    'profilePhotoTooLarge': 'Profil fotoğrafı 5 MB’den küçük olmalıdır.',
     'language': 'Dil',
     'english': 'İngilizce',
     'turkish': 'Türkçe',
@@ -869,6 +913,8 @@ const _allergies = {
 
 const _profileReplacements = {
   'Low Risk': 'Düşük Risk',
+  'Insufficient Data': 'Yetersiz Veri',
+  'No Flagged Risk in Available Data': 'Mevcut Veride İşaretlenen Risk Yok',
   'Cardiovascular Lipid Risk': 'Kardiyovasküler Lipit Riski',
   'Kidney / Muscle Marker': 'Böbrek / Kas Göstergesi',
   'Kidney / Muscle Indicator': 'Böbrek / Kas Göstergesi',

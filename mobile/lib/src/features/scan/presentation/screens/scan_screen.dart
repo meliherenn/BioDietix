@@ -99,7 +99,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
   double? _number(String value) {
     final parsed = double.tryParse(value.replaceAll(',', '.'));
-    return parsed != null && parsed > 0 ? parsed : null;
+    return parsed != null && parsed >= 0 ? parsed : null;
   }
 
   Product _productFromFields() {

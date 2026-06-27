@@ -80,6 +80,28 @@ class _TestsScreenState extends State<TestsScreen> {
     return File(path);
   }
 
+  Future<bool> _confirmHealthUpload() async {
+    final strings = AppScope.of(context).strings;
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(strings.t('healthUploadConsentTitle')),
+            content: Text(strings.t('healthUploadConsentBody')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(strings.t('cancel')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(strings.t('continueAction')),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
   Future<void> _uploadBloodPdf(ProfileLoaded profile) async {
     final strings = AppScope.of(context).strings;
     if (!_serverReady) {
@@ -88,6 +110,7 @@ class _TestsScreenState extends State<TestsScreen> {
     }
 
     final profileCubit = context.read<ProfileCubit>();
+    if (!await _confirmHealthUpload() || !mounted) return;
     final file = await _pickPdf();
     if (file == null) return;
 
@@ -121,6 +144,7 @@ class _TestsScreenState extends State<TestsScreen> {
     }
 
     final profileCubit = context.read<ProfileCubit>();
+    if (!await _confirmHealthUpload() || !mounted) return;
     final file = await _pickPdf();
     if (file == null) return;
 
@@ -279,6 +303,12 @@ class _ReportStatusCard extends StatelessWidget {
                 color: aqua,
               ),
             if (memory != null) _ProfileMemoryPreview(memory: memory),
+            if (memory != null && memory.dataQualityStatus == 'limited')
+              NoticeBox(
+                message: strings.t('limitedLabDataWarning'),
+                icon: Icons.warning_amber_rounded,
+                warning: true,
+              ),
             if (extractedValues.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(

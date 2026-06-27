@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: biodietix-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: BIODIETIX_ENV
+        value: production
+      - key: BIODIETIX_AUTH_REQUIRED
+        value: "true"
+      - key: BIODIETIX_APP_CHECK_REQUIRED
+        value: "true"
+      - key: BIODIETIX_FIREBASE_CHECK_REVOKED
+        value: "true"
+      - key: BIODIETIX_EXPOSE_DOCS
+        value: "false"
+      - key: BIODIETIX_MAX_PDF_BYTES
+        value: "10485760"
+      - key: BIODIETIX_MAX_JSON_BYTES
+        value: "524288"
+      - key: BIODIETIX_FIREBASE_CREDENTIALS_JSON
+        sync: false

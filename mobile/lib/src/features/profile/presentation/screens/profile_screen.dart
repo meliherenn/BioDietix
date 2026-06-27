@@ -79,6 +79,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _save(ProfileLoaded state) async {
     FocusScope.of(context).unfocus();
+    final age = int.tryParse(_age.text);
+    final weight = _number(_weight.text);
+    final height = _number(_height.text);
+    final invalid =
+        age == null ||
+        age < 18 ||
+        age > 120 ||
+        (_weight.text.trim().isNotEmpty && (weight == null || weight > 350)) ||
+        (_height.text.trim().isNotEmpty && (height == null || height > 250));
+    if (invalid) {
+      showAppSnack(
+        context,
+        AppScope.of(context).strings.t('invalidProfileValues'),
+      );
+      return;
+    }
     context.read<ProfileCubit>().updatePersonalInfo(_infoFromFields(state));
     await context.read<ProfileCubit>().saveProfile();
   }

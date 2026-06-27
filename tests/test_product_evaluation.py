@@ -47,6 +47,29 @@ class ProductEvaluationDecisionTests(unittest.TestCase):
             [reason["code"] for reason in result["reasons"]],
         )
 
+    def test_current_bmi_overrides_stale_weight_profile_text(self):
+        profile = {
+            **self.profile,
+            "bmi": 22,
+        }
+        result = evaluate_product_for_profile(
+            {"name": "Energy dense product", "energy_kcal_100g": 450},
+            profile,
+        )
+        self.assertNotIn(
+            "high_energy_weight",
+            [reason["code"] for reason in result["reasons"]],
+        )
+
+    def test_unknown_manual_allergy_is_not_silently_dropped(self):
+        profile = {**self.profile, "allergies": ["mustard"]}
+        result = evaluate_product_for_profile(
+            {"name": "Dressing", "ingredients_text": "water, mustard, vinegar"},
+            profile,
+        )
+        self.assertEqual(result["decision"], "not_recommended")
+        self.assertIn("mustard", result["allergy_conflicts"])
+
 
 if __name__ == "__main__":
     unittest.main()

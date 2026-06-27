@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/personal_info.dart';
@@ -31,18 +33,38 @@ class AllergyAnalysisResult {
 }
 
 class BioDietixApi {
-  BioDietixApi(String apiUrl) : baseUrl = apiUrl.replaceAll(RegExp(r'/+$'), '');
+  BioDietixApi(
+    String apiUrl, {
+    Future<String?> Function()? accessTokenProvider,
+    Future<String?> Function()? appCheckTokenProvider,
+    http.Client? client,
+    this.requestTimeout = const Duration(seconds: 30),
+    this.uploadTimeout = const Duration(seconds: 90),
+  }) : baseUrl = apiUrl.replaceAll(RegExp(r'/+$'), ''),
+       _accessTokenProvider = accessTokenProvider ?? _firebaseAccessToken,
+       _appCheckTokenProvider = appCheckTokenProvider ?? _firebaseAppCheckToken,
+       _client = client ?? http.Client();
 
   final String baseUrl;
+  final Duration requestTimeout;
+  final Duration uploadTimeout;
+  final Future<String?> Function() _accessTokenProvider;
+  final Future<String?> Function() _appCheckTokenProvider;
+  final http.Client _client;
 
   static bool isConfiguredUrl(String apiUrl) {
     final uri = Uri.tryParse(apiUrl.trim());
-    return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
+    if (uri == null || uri.host.isEmpty) return false;
+    if (uri.scheme == 'https') return true;
+    return uri.scheme == 'http' &&
+        {'localhost', '127.0.0.1', '10.0.2.2'}.contains(uri.host);
   }
 
   Future<Map<String, dynamic>> health() async {
     _ensureConfigured();
-    final response = await http.get(Uri.parse('$baseUrl/health'));
+    final response = await _client
+        .get(Uri.parse('$baseUrl/health'))
+        .timeout(requestTimeout);
     return _decode(response);
   }
 
@@ -54,8 +76,9 @@ class BioDietixApi {
     _ensureConfigured();
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse('$baseUrl/analyze/blood-pdf'),
+      Uri.parse('$baseUrl/v1/analyze/blood-pdf'),
     );
+    request.headers.addAll(await _authorizationHeaders());
     request.fields['gender'] = personalInfo.gender;
     request.fields['age'] = personalInfo.age.toString();
     if (personalInfo.weightKg != null) {
@@ -67,7 +90,9 @@ class BioDietixApi {
     request.fields['allergies_json'] = jsonEncode(allergies);
     request.files.add(await http.MultipartFile.fromPath('file', file.path));
 
-    final response = await http.Response.fromStream(await request.send());
+    final response = await http.Response.fromStream(
+      await _client.send(request).timeout(uploadTimeout),
+    );
     final payload = _decode(response);
     return BloodAnalysisResult(
       profileMemory: ProfileMemory.fromJson(
@@ -84,11 +109,14 @@ class BioDietixApi {
     _ensureConfigured();
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse('$baseUrl/analyze/allergy-pdf'),
+      Uri.parse('$baseUrl/v1/analyze/allergy-pdf'),
     );
+    request.headers.addAll(await _authorizationHeaders());
     request.files.add(await http.MultipartFile.fromPath('file', file.path));
 
-    final response = await http.Response.fromStream(await request.send());
+    final response = await http.Response.fromStream(
+      await _client.send(request).timeout(uploadTimeout),
+    );
     final payload = _decode(response);
     return AllergyAnalysisResult(
       allergies: _stringList(payload['allergies']),
@@ -98,9 +126,12 @@ class BioDietixApi {
 
   Future<Product> lookupProduct(String barcode) async {
     _ensureConfigured();
-    final response = await http.get(
-      Uri.parse('$baseUrl/product/lookup/$barcode'),
-    );
+    final response = await _client
+        .get(
+          Uri.parse('$baseUrl/v1/product/lookup/$barcode'),
+          headers: await _authorizationHeaders(),
+        )
+        .timeout(requestTimeout);
     final payload = _decode(response);
     return Product.fromJson(payload['product'] as Map<String, dynamic>);
   }
@@ -110,27 +141,66 @@ class BioDietixApi {
     required ProfileMemory profileMemory,
   }) async {
     _ensureConfigured();
-    final response = await http.post(
-      Uri.parse('$baseUrl/product/evaluate'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'product': product.toJson(),
-        'profile_memory': profileMemory.toJson(),
-      }),
-    );
+    final response = await _client
+        .post(
+          Uri.parse('$baseUrl/v1/product/evaluate'),
+          headers: {
+            ...await _authorizationHeaders(),
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'product': product.toJson(),
+            'profile_memory': profileMemory.toJson(),
+          }),
+        )
+        .timeout(requestTimeout);
     return ProductEvaluation.fromJson(_decode(response));
   }
 
   void _ensureConfigured() {
     if (!isConfiguredUrl(baseUrl)) {
-      throw Exception('A public HTTPS BioDietix API URL is required.');
+      throw Exception(
+        'A public HTTPS or local development API URL is required.',
+      );
     }
   }
 
+  static Future<String?> _firebaseAccessToken() async {
+    return FirebaseAuth.instance.currentUser?.getIdToken();
+  }
+
+  static Future<String?> _firebaseAppCheckToken() async {
+    return FirebaseAppCheck.instance.getToken();
+  }
+
+  Future<Map<String, String>> _authorizationHeaders() async {
+    final token = await _accessTokenProvider();
+    if (token == null || token.isEmpty) {
+      throw const BioDietixApiException(
+        statusCode: 401,
+        message: 'Authentication session is unavailable. Please sign in again.',
+      );
+    }
+    final appCheckToken = await _appCheckTokenProvider();
+    return {
+      'Authorization': 'Bearer $token',
+      if (appCheckToken != null && appCheckToken.isNotEmpty)
+        'X-Firebase-AppCheck': appCheckToken,
+    };
+  }
+
   Map<String, dynamic> _decode(http.Response response) {
-    final decoded = response.body.isEmpty
-        ? <String, dynamic>{}
-        : jsonDecode(response.body);
+    dynamic decoded;
+    try {
+      decoded = response.body.isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(response.body);
+    } on FormatException {
+      throw BioDietixApiException(
+        statusCode: response.statusCode,
+        message: 'BioDietix API returned an invalid response.',
+      );
+    }
     final payload = decoded is Map
         ? decoded.map((key, value) => MapEntry(key.toString(), value))
         : <String, dynamic>{};

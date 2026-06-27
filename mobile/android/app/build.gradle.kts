@@ -64,14 +64,19 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
             }
             isMinifyEnabled = true
             isShrinkResources = true
         }
+    }
+}
+
+gradle.taskGraph.whenReady {
+    val buildingRelease = allTasks.any { it.name.contains("Release", ignoreCase = true) }
+    if (buildingRelease && !rootProject.file("key.properties").exists()) {
+        throw GradleException("Release signing requires mobile/android/key.properties.")
     }
 }
 

@@ -67,6 +67,20 @@ class AuthRepository {
     }
   }
 
+  Future<void> deleteAccount() async {
+    _ensureFirebase();
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(code: 'user-not-found');
+    }
+    await user.delete();
+    try {
+      await GoogleSignInService.signOut();
+    } on Exception {
+      // The Firebase user deletion is authoritative.
+    }
+  }
+
   void _ensureFirebase() {
     if (!firebaseReady) {
       throw FirebaseAuthException(code: 'firebase-not-configured');

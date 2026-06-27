@@ -9,6 +9,10 @@ Flutter Android uygulamasından oluşur. Mobil uygulama kullanıcının son sağ
 profilini telefonda saklar, ürün barkodu/QR değeriyle market ürününü bulur ve
 kan testi, BMI, alerji ve besin etiketi sinyallerine göre karar üretir.
 
+Üretim karar yolu kural tabanlıdır. Scikit-learn modelleri yalnızca kural
+motorunun pseudo-label çıktısını denetleyen audit deneyleridir; API veya mobil
+uygulama tarafından inference modeli olarak kullanılmaz.
+
 > BioDietix tıbbi tanı veya tedavi aracı değildir. Çıktılar eğitim/proje amaçlı
 > destekleyici bilgi olarak değerlendirilmelidir.
 
@@ -24,6 +28,7 @@ kan testi, BMI, alerji ve besin etiketi sinyallerine göre karar üretir.
 - [Kullanım Akışı](#kullanım-akışı)
 - [Veri ve Model Notları](#veri-ve-model-notları)
 - [Doğrulama](#doğrulama)
+- [Mimari ve Operasyon Belgeleri](#mimari-ve-operasyon-belgeleri)
 
 ## Ekran Görüntüleri
 
@@ -89,7 +94,7 @@ kan testi, BMI, alerji ve besin etiketi sinyallerine göre karar üretir.
 ```text
 .
 ├── app.py                         # Streamlit web arayüzü
-├── api.py                         # FastAPI mobil backend
+├── api.py                         # Typed ve kimlik doğrulamalı FastAPI backend
 ├── biodietix.py                   # Ana analiz ve öneri motoru
 ├── requirements.txt               # Python bağımlılıkları
 ├── utils/
@@ -99,8 +104,10 @@ kan testi, BMI, alerji ve besin etiketi sinyallerine göre karar üretir.
 │   └── mobile_health_core.py      # Mobil profil ve ürün kararı çekirdeği
 ├── data/food_recommendations.csv  # Gıda öneri rehberi
 ├── mobile/                        # Flutter Android uygulaması
-├── docs/screenshots/              # README görselleri
-└── tests/                         # Python ürün değerlendirme testleri
+├── docs/                          # Mimari, API, veri, model ve deploy belgeleri
+├── tests/                         # Python ürün değerlendirme testleri
+├── Dockerfile / render.yaml       # API deploy tanımı
+└── firestore.rules / storage.rules
 ```
 
 ## Hızlı Başlangıç
@@ -122,8 +129,12 @@ streamlit run app.py
 FastAPI backend'i başlatın:
 
 ```bash
+BIODIETIX_AUTH_REQUIRED=false \
 uvicorn api:app --reload --host 0.0.0.0 --port 8000
 ```
+
+Kimlik doğrulamayı yalnız yerel geliştirmede kapatın. Üretim değişkenleri
+`.env.example` içinde listelenmiştir.
 
 Canlı mobil API varsayılanı:
 
@@ -139,13 +150,15 @@ Gereksinimler:
 - Android SDK.
 - Çalışan Android cihaz veya emülatör.
 - Firebase projesinde Email/Password ve Google Authentication.
+- Firebase App Check: geliştirmede kayıtlı debug token, üretimde Play Integrity.
 - Android paket adı: `com.biodietix.biodietix_mobile`.
 - Firebase dosyası: `mobile/android/app/google-services.json`.
 
 Firebase Google girişi için Firebase Console'da Android uygulamasına SHA-1 ve
 SHA-256 sertifika parmak izleri eklenmelidir. Provider veya sertifika değişirse
 `google-services.json` yeniden indirilip `mobile/android/app/` altına
-konulmalıdır.
+konulmalıdır. Üretim API'si App Check ister; Play Integrity sağlayıcısı Firebase
+Console'da etkinleştirilmeden prod build API çağrıları kabul edilmez.
 
 Bağımlılıkları kurun:
 
@@ -198,10 +211,13 @@ flutter build appbundle --release --flavor prod --dart-define=FLAVOR=prod
 | Method | Endpoint | Açıklama |
 | --- | --- | --- |
 | `GET` | `/health` | API sağlık kontrolü |
-| `POST` | `/analyze/blood-pdf` | Kan testi PDF analizinden profil üretir |
-| `POST` | `/analyze/allergy-pdf` | Alerji PDF metninden alerji sinyalleri çıkarır |
-| `GET` | `/product/lookup/{barcode}` | Barkodu Open Food Facts üzerinden arar |
-| `POST` | `/product/evaluate` | Ürünü son profil ve alerji bilgisine göre değerlendirir |
+| `POST` | `/v1/analyze/blood-pdf` | Kan testi PDF analizinden profil üretir |
+| `POST` | `/v1/analyze/allergy-pdf` | Alerji PDF metninden alerji sinyalleri çıkarır |
+| `GET` | `/v1/product/lookup/{barcode}` | Barkodu Open Food Facts üzerinden arar |
+| `POST` | `/v1/product/evaluate` | Ürünü son profil ve alerji bilgisine göre değerlendirir |
+
+`/v1` endpointleri Firebase ID token ister. Ayrıntılar:
+[`docs/API.md`](docs/API.md).
 
 ## Kullanım Akışı
 
@@ -254,7 +270,14 @@ denetlenebilir bir pseudo-label olarak kullanılır. ML audit bölümü bu etike
 - Eksik değerler pipeline içinde tamamlanır.
 - Nadir profil kombinasyonları `Other Profile` altında gruplanır.
 - Random Forest ve Gradient Boosting modelleri eğitilir.
-- Accuracy, precision, recall, F1 ve RMSE-style label index metriği gösterilir.
+- Survey cycle/yılı mümkünse grup holdout olarak kullanılır.
+- Accuracy, balanced accuracy, weighted/macro precision-recall-F1 ve log-loss
+  gösterilir.
+
+Sınırlı PDF raporları `Data_Quality_Status=limited` taşır ve genel sağlık için
+“Low Risk” iddiası üretmez.
+Benzer şekilde, temel analiz sinyallerinin 16'sından azını içeren CSV satırları
+`limited` işaretlenir; görülen riskler korunur ancak genel “Low Risk” üretilmez.
 
 ## Ürün Kararı Mantığı
 
@@ -281,22 +304,35 @@ flutter pub get
 flutter analyze
 flutter test
 flutter build apk --debug --flavor dev --dart-define=FLAVOR=dev
-flutter build apk --release --flavor prod --dart-define=FLAVOR=prod
-adb install build/app/outputs/flutter-apk/app-prod-release.apk
 
 cd ..
 python -m unittest discover -s tests -v
+python -m scripts.validate_dataset BioDietix_CLEAN.csv
+ruff check api.py biodietix.py utils tests scripts
 ```
 
-Flutter build sırasında Android/Kotlin Gradle Plugin kullanımı için gelecek
-Flutter sürümlerine yönelik uyarı alınmıştır. Uyarı mevcut build'i engellemez;
-ileride Flutter'ın Built-in Kotlin geçiş rehberine göre güncelleme yapılmalıdır.
+Release görevi, `mobile/android/key.properties` olmadığında debug anahtarına
+düşmek yerine bilinçli olarak duracak şekilde doğrulandı. İmzalı release APK ve
+cihaza kurulum, proje sahibinin release keystore'u sağlandıktan sonra release
+runbook'unda tamamlanmalıdır.
 
-Yerel Python ortamında `pytest` paketi kurulu olmadığı için
-`python -m pytest -q` çalıştırılamadı; Python testleri standart `unittest` ile
-doğrulandı.
+CI; Python birim/API testleri, Dart format, Flutter analyze/test/debug build ve
+bağımlılık audit işlerini çalıştırır.
+
+## Mimari ve Operasyon Belgeleri
+
+- [Mimari](docs/ARCHITECTURE.md)
+- [API sözleşmesi](docs/API.md)
+- [Karar sistemi/model card](docs/MODEL_CARD.md)
+- [Veri yönetişimi](docs/DATA.md)
+- [Deploy runbook](docs/DEPLOYMENT.md)
+- [Güvenlik politikası](SECURITY.md)
+- [Gizlilik ve veri işleme taslağı](PRIVACY.md)
 
 ## Lisans ve Uyarı
 
 Bu proje eğitim ve sunum amaçlıdır. Sağlıkla ilgili kararlar için yetkili sağlık
 profesyonellerine danışılmalıdır.
+
+Repoda henüz açık kaynak lisansı seçilmemiştir. Lisans seçimi proje sahibinin
+hukuki onayını gerektirir.

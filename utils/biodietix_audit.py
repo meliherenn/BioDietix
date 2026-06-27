@@ -3,7 +3,6 @@ import math
 import numpy as np
 import pandas as pd
 
-
 MODEL_FEATURE_COLUMNS = [
     "Gender",
     "Age",
@@ -136,10 +135,11 @@ def run_ml_profile_audit(dataframe, max_rows=1000, max_classes=15, random_state=
         from sklearn.impute import SimpleImputer
         from sklearn.metrics import (
             accuracy_score,
-            mean_squared_error,
+            balanced_accuracy_score,
+            log_loss,
             precision_recall_fscore_support,
         )
-        from sklearn.model_selection import train_test_split
+        from sklearn.model_selection import GroupShuffleSplit, train_test_split
         from sklearn.pipeline import Pipeline
         from sklearn.preprocessing import LabelEncoder, OneHotEncoder
     except ImportError as exc:
@@ -155,7 +155,14 @@ def run_ml_profile_audit(dataframe, max_rows=1000, max_classes=15, random_state=
     if len(feature_columns) < 5:
         raise MLAuditError("Not enough raw model features are available for ML audit.")
 
-    model_data = dataframe[feature_columns + [TARGET_COLUMN]].dropna(subset=[TARGET_COLUMN]).copy()
+    group_column = next(
+        (column for column in ("Survey_Cycle", "Survey_Year") if column in dataframe.columns),
+        None,
+    )
+    selected_columns = feature_columns + [TARGET_COLUMN]
+    if group_column:
+        selected_columns.append(group_column)
+    model_data = dataframe[selected_columns].dropna(subset=[TARGET_COLUMN]).copy()
     model_data = model_data[model_data[TARGET_COLUMN].astype(str).str.strip() != ""]
     class_counts = model_data[TARGET_COLUMN].value_counts()
     frequent_classes = class_counts.head(max_classes).index
@@ -214,13 +221,36 @@ def run_ml_profile_audit(dataframe, max_rows=1000, max_classes=15, random_state=
         and int(len(encoded_y) * test_size) >= len(label_encoder.classes_)
     )
     stratify = encoded_y if can_stratify else None
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        encoded_y,
-        test_size=test_size,
-        random_state=random_state,
-        stratify=stratify,
-    )
+    split_strategy = "random_stratified" if stratify is not None else "random"
+    if group_column and model_data[group_column].nunique() >= 2:
+        splitter = GroupShuffleSplit(
+            n_splits=1,
+            test_size=test_size,
+            random_state=random_state,
+        )
+        train_index, test_index = next(
+            splitter.split(X, encoded_y, groups=model_data[group_column])
+        )
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = encoded_y[train_index], encoded_y[test_index]
+        split_strategy = f"group_holdout:{group_column}"
+        if not set(y_test).issubset(set(y_train)):
+            X_train, X_test, y_train, y_test = train_test_split(
+                X,
+                encoded_y,
+                test_size=test_size,
+                random_state=random_state,
+                stratify=stratify,
+            )
+            split_strategy = "random_fallback_for_unseen_group_classes"
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            encoded_y,
+            test_size=test_size,
+            random_state=random_state,
+            stratify=stratify,
+        )
 
     models = {
         "Random Forest": RandomForestClassifier(
@@ -256,15 +286,35 @@ def run_ml_profile_audit(dataframe, max_rows=1000, max_classes=15, random_state=
             average="weighted",
             zero_division=0,
         )
-        rmse = math.sqrt(mean_squared_error(y_test, predictions))
+        macro_precision, macro_recall, macro_f1, _ = precision_recall_fscore_support(
+            y_test,
+            predictions,
+            average="macro",
+            zero_division=0,
+        )
+        probabilities = pipeline.predict_proba(X_test)
         metric_rows.append(
             {
                 "Model": model_name,
                 "Accuracy": round(accuracy_score(y_test, predictions), 4),
+                "Balanced_Accuracy": round(
+                    balanced_accuracy_score(y_test, predictions),
+                    4,
+                ),
                 "Precision": round(precision, 4),
                 "Recall": round(recall, 4),
                 "F1": round(f1, 4),
-                "RMSE_Label_Index": round(rmse, 4),
+                "Macro_Precision": round(macro_precision, 4),
+                "Macro_Recall": round(macro_recall, 4),
+                "Macro_F1": round(macro_f1, 4),
+                "Log_Loss": round(
+                    log_loss(
+                        y_test,
+                        probabilities,
+                        labels=np.arange(len(label_encoder.classes_)),
+                    ),
+                    4,
+                ),
             }
         )
 
@@ -288,4 +338,6 @@ def run_ml_profile_audit(dataframe, max_rows=1000, max_classes=15, random_state=
         "target_classes": int(model_data[TARGET_COLUMN].nunique()),
         "feature_count": int(len(feature_columns)),
         "grouped_top_classes": int(max_classes),
+        "split_strategy": split_strategy,
+        "target_provenance": "rule_engine_pseudo_label",
     }

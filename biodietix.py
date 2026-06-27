@@ -1,23 +1,55 @@
+import os
 import re
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from utils.food_recommendation_guide import add_food_guide_to_recommendations
 
-
 # =========================================================
 # CONFIG
 # =========================================================
 
-DATASET_PATH = "BioDietix_CLEAN.csv"
-PDF_PATH = "29.01.2025.pdf"
+DATASET_PATH = os.getenv("BIODIETIX_DATASET_PATH", "BioDietix_CLEAN.csv")
+PDF_PATH = os.getenv("BIODIETIX_PDF_PATH", "").strip()
+ARTIFACT_DIR = Path(os.getenv("BIODIETIX_ARTIFACT_DIR", "artifacts"))
 
-RISK_OUTPUT = "BioDietix_Risk_Analysis.csv"
-RECOMMENDATION_OUTPUT = "BioDietix_Recommendation_System.csv"
-PDF_OUTPUT = "Patient_PDF_Recommendation_Result.csv"
+RISK_OUTPUT = ARTIFACT_DIR / "BioDietix_Risk_Analysis.csv"
+RECOMMENDATION_OUTPUT = ARTIFACT_DIR / "BioDietix_Recommendation_System.csv"
+PDF_OUTPUT = ARTIFACT_DIR / "PDF_Recommendation_Result.csv"
 
+
+PDF_LAB_DOMAINS = {
+    "glycemic": {"Glucose_mgdL", "HbA1c_Percent"},
+    "lipids": {
+        "Cholesterol_Total_mgdL",
+        "Cholesterol_LDL_mgdL",
+        "Cholesterol_HDL_mgdL",
+        "Triglycerides_mgdL",
+    },
+    "kidney": {"Kidney_Creatinine_mgdL", "eGFR_ml_min_1_73m2", "Urea_mgdL"},
+    "liver": {"Liver_AST_UL", "Liver_ALT_UL"},
+    "blood_count": {
+        "Hemoglobin_gdL",
+        "Hematocrit_Percent",
+        "Red_Blood_Cells_count",
+        "White_Blood_Cells_count",
+        "Platelet_count",
+    },
+    "inflammation": {"CRP_mg_L", "Sedimentation_mm_h"},
+    "micronutrients": {
+        "Ferritin_ng_mL",
+        "Folate_ng_mL",
+        "Vitamin_B12_pg_mL",
+        "VitaminD_ng_mL",
+        "Iron_ugdL",
+        "Calcium_mg_dL",
+        "Magnesium_mg_dL",
+    },
+    "thyroid": {"TSH_mIU_L", "Free_T3_pg_mL", "Free_T4_ng_dL"},
+}
 
 
 def is_risk(value):
@@ -53,7 +85,7 @@ def calculate_bmi(weight_kg, height_cm):
     if pd.isna(weight_kg) or pd.isna(height_cm) or height_cm <= 0:
         return np.nan
     height_m = height_cm / 100
-    return round(weight_kg / (height_m ** 2), 1)
+    return round(weight_kg / (height_m**2), 1)
 
 
 def enrich_anthropometrics(data):
@@ -100,6 +132,7 @@ def extract_pdf_text(pdf_path):
 # =========================================================
 # RISK FUNCTIONS
 # =========================================================
+
 
 def glucose_risk(glucose):
     if pd.isna(glucose):
@@ -370,12 +403,7 @@ def waist_risk(gender, waist):
 
 
 def diet_quality_risk(row):
-    diet_cols = [
-        "Daily_Fiber_g",
-        "Daily_Sugar_g",
-        "Daily_Fat_g",
-        "Daily_Cholesterol_mg"
-    ]
+    diet_cols = ["Daily_Fiber_g", "Daily_Sugar_g", "Daily_Fat_g", "Daily_Cholesterol_mg"]
 
     if all(pd.isna(row.get(col, np.nan)) for col in diet_cols):
         return np.nan
@@ -482,6 +510,7 @@ def tsh_risk(tsh):
 # APPLY RISK ENGINE
 # =========================================================
 
+
 def apply_risk_engine(data):
     data = enrich_anthropometrics(data)
 
@@ -494,13 +523,11 @@ def apply_risk_engine(data):
     data["BMI_Risk_Level"] = data["BMI"].apply(bmi_risk)
 
     data["Waist_Risk_Level"] = data.apply(
-        lambda row: waist_risk(row["Gender"], row["Waist_Circumference_cm"]),
-        axis=1
+        lambda row: waist_risk(row["Gender"], row["Waist_Circumference_cm"]), axis=1
     )
 
     data["BP_Risk_Level"] = data.apply(
-        lambda row: bp_risk(row["BP_Systolic_mmHg"], row["BP_Diastolic_mmHg"]),
-        axis=1
+        lambda row: bp_risk(row["BP_Systolic_mmHg"], row["BP_Diastolic_mmHg"]), axis=1
     )
 
     data["Cholesterol_Risk_Level"] = data["Cholesterol_Total_mgdL"].apply(cholesterol_risk)
@@ -509,29 +536,25 @@ def apply_risk_engine(data):
 
     if "Cholesterol_HDL_mgdL" in data.columns:
         data["HDL_Risk_Level"] = data.apply(
-            lambda row: hdl_risk(row["Gender"], row["Cholesterol_HDL_mgdL"]),
-            axis=1
+            lambda row: hdl_risk(row["Gender"], row["Cholesterol_HDL_mgdL"]), axis=1
         )
 
     data["Creatinine_Risk_Level"] = data.apply(
-        lambda row: creatinine_risk(row["Gender"], row["Kidney_Creatinine_mgdL"]),
-        axis=1
+        lambda row: creatinine_risk(row["Gender"], row["Kidney_Creatinine_mgdL"]), axis=1
     )
 
     if "eGFR_ml_min_1_73m2" in data.columns:
         data["eGFR_Risk_Level"] = data["eGFR_ml_min_1_73m2"].apply(egfr_risk)
 
     data["Hemoglobin_Risk_Level"] = data.apply(
-        lambda row: hemoglobin_risk(row["Gender"], row["Hemoglobin_gdL"]),
-        axis=1
+        lambda row: hemoglobin_risk(row["Gender"], row["Hemoglobin_gdL"]), axis=1
     )
 
     data["AST_Risk_Level"] = data["Liver_AST_UL"].apply(ast_risk)
 
     if "Liver_ALT_UL" in data.columns:
         data["ALT_Risk_Level"] = data.apply(
-            lambda row: alt_risk(row["Gender"], row["Liver_ALT_UL"]),
-            axis=1
+            lambda row: alt_risk(row["Gender"], row["Liver_ALT_UL"]), axis=1
         )
 
     if "CRP_mg_L" in data.columns:
@@ -548,8 +571,7 @@ def apply_risk_engine(data):
 
     if "Ferritin_ng_mL" in data.columns:
         data["Ferritin_Risk_Level"] = data.apply(
-            lambda row: ferritin_risk(row["Gender"], row["Ferritin_ng_mL"]),
-            axis=1
+            lambda row: ferritin_risk(row["Gender"], row["Ferritin_ng_mL"]), axis=1
         )
 
     data["Fiber_Risk_Level"] = data["Daily_Fiber_g"].apply(fiber_risk)
@@ -560,13 +582,11 @@ def apply_risk_engine(data):
     data["WBC_Risk_Level"] = data["White_Blood_Cells_count"].apply(wbc_risk)
 
     data["RBC_Risk_Level"] = data.apply(
-        lambda row: rbc_risk(row["Gender"], row["Red_Blood_Cells_count"]),
-        axis=1
+        lambda row: rbc_risk(row["Gender"], row["Red_Blood_Cells_count"]), axis=1
     )
 
     data["Hematocrit_Risk_Level"] = data.apply(
-        lambda row: hct_risk(row["Gender"], row["Hematocrit_Percent"]),
-        axis=1
+        lambda row: hct_risk(row["Gender"], row["Hematocrit_Percent"]), axis=1
     )
 
     data["Platelet_Risk_Level"] = data["Platelet_count"].apply(platelet_risk)
@@ -581,6 +601,7 @@ def apply_risk_engine(data):
 # HEALTH PROFILE
 # =========================================================
 
+
 def create_health_profile(row):
     profiles = []
 
@@ -593,13 +614,17 @@ def create_health_profile(row):
     if row.get("BP_Risk_Level") in ["Stage 1 Hypertension Risk", "Stage 2 Hypertension Risk"]:
         profiles.append("Blood Pressure Risk")
 
-    if row.get("Cholesterol_Risk_Level") in ["Borderline High", "High Risk"] or \
-       row.get("LDL_Risk_Level") in ["Borderline High", "High", "Very High"] or \
-       row.get("Triglyceride_Risk_Level") in ["Borderline High", "High", "Very High"]:
+    if (
+        row.get("Cholesterol_Risk_Level") in ["Borderline High", "High Risk"]
+        or row.get("LDL_Risk_Level") in ["Borderline High", "High", "Very High"]
+        or row.get("Triglyceride_Risk_Level") in ["Borderline High", "High", "Very High"]
+    ):
         profiles.append("Cardiovascular Lipid Risk")
 
-    if row.get("Creatinine_Risk_Level") in ["Low", "High Risk"] or \
-       row.get("eGFR_Risk_Level") == "Reduced eGFR Indicator":
+    if (
+        row.get("Creatinine_Risk_Level") in ["Low", "High Risk"]
+        or row.get("eGFR_Risk_Level") == "Reduced eGFR Indicator"
+    ):
         profiles.append("Kidney / Muscle Indicator")
 
     if is_risk(row.get("Hemoglobin_Risk_Level")):
@@ -614,11 +639,16 @@ def create_health_profile(row):
     if is_risk(row.get("Platelet_Risk_Level")):
         profiles.append("Platelet Support Indicator")
 
-    if row.get("AST_Risk_Level") == "Elevated AST Risk" or \
-       row.get("ALT_Risk_Level") == "Elevated ALT Risk":
+    if (
+        row.get("AST_Risk_Level") == "Elevated AST Risk"
+        or row.get("ALT_Risk_Level") == "Elevated ALT Risk"
+    ):
         profiles.append("Liver Enzyme Indicator")
 
-    if pd.notna(row.get("Diet_Quality_Risk_Level")) and row.get("Diet_Quality_Risk_Level") != "Good Diet Quality":
+    if (
+        pd.notna(row.get("Diet_Quality_Risk_Level"))
+        and row.get("Diet_Quality_Risk_Level") != "Good Diet Quality"
+    ):
         profiles.append("Diet Quality Risk")
 
     if row.get("Waist_Risk_Level") == "Abdominal Obesity Risk":
@@ -636,15 +666,19 @@ def create_health_profile(row):
     if is_risk(row.get("VitaminD_Risk_Level")):
         profiles.append("Vitamin D / Bone Health Indicator")
 
-    if is_risk(row.get("B12_Risk_Level")) or \
-       is_risk(row.get("Folate_Risk_Level")) or \
-       is_risk(row.get("Ferritin_Risk_Level")):
+    if (
+        is_risk(row.get("B12_Risk_Level"))
+        or is_risk(row.get("Folate_Risk_Level"))
+        or is_risk(row.get("Ferritin_Risk_Level"))
+    ):
         profiles.append("Micronutrient Support Indicator")
 
     if row.get("Age_Risk_Level") in ["Midlife Prevention Focus", "Older Adult Nutrition Focus"]:
         profiles.append("Age-Related Nutrition Focus")
 
     if len(profiles) == 0:
+        if row.get("Analysis_Source") == "pdf":
+            return "No Flagged Risk in Available Data"
         return "Low Risk"
 
     return ", ".join(list(dict.fromkeys(profiles)))
@@ -653,6 +687,7 @@ def create_health_profile(row):
 # =========================================================
 # RECOMMENDATION ENGINE
 # =========================================================
+
 
 def generate_recommendations(row):
     recommendations = []
@@ -664,7 +699,9 @@ def generate_recommendations(row):
         recommendations.append(
             "For this age group, build long-term habits with regular meals, adequate protein, fiber, and physical activity."
         )
-        increase_foods.extend(["balanced meals", "lean protein", "whole grains", "vegetables", "fruits"])
+        increase_foods.extend(
+            ["balanced meals", "lean protein", "whole grains", "vegetables", "fruits"]
+        )
         limit_foods.extend(["frequent fast food", "sugary drinks", "meal skipping"])
     elif age_group_value == "Adult":
         recommendations.append(
@@ -676,13 +713,24 @@ def generate_recommendations(row):
         recommendations.append(
             "For midlife prevention, focus on cardiovascular health, muscle maintenance, fiber, vitamin D, calcium, and regular checkups."
         )
-        increase_foods.extend(["fish", "low-fat dairy", "legumes", "vegetables", "vitamin D foods", "calcium-rich foods"])
+        increase_foods.extend(
+            [
+                "fish",
+                "low-fat dairy",
+                "legumes",
+                "vegetables",
+                "vitamin D foods",
+                "calcium-rich foods",
+            ]
+        )
         limit_foods.extend(["saturated fat", "excess sodium", "ultra-processed foods"])
     elif age_group_value == "Older Adult":
         recommendations.append(
             "For older adults, protect muscle and bone health with adequate protein, vitamin D, calcium, hydration, and clinically guided follow-up."
         )
-        increase_foods.extend(["eggs", "fish", "yogurt", "low-fat dairy", "water", "protein-rich foods"])
+        increase_foods.extend(
+            ["eggs", "fish", "yogurt", "low-fat dairy", "water", "protein-rich foods"]
+        )
         limit_foods.extend(["very low-calorie diets", "dehydration", "high-sodium foods"])
 
     if "Blood Sugar Risk" in row["Health_Profile"]:
@@ -703,22 +751,34 @@ def generate_recommendations(row):
         recommendations.append(
             "BMI indicates an underweight range. Increase nutrient-dense calories with protein-rich meals and healthy fats, and review unintentional weight loss with a healthcare professional."
         )
-        increase_foods.extend(["protein-rich foods", "nuts", "olive oil", "yogurt", "eggs", "legumes", "balanced meals"])
+        increase_foods.extend(
+            [
+                "protein-rich foods",
+                "nuts",
+                "olive oil",
+                "yogurt",
+                "eggs",
+                "legumes",
+                "balanced meals",
+            ]
+        )
         limit_foods.extend(["meal skipping", "very restrictive diets"])
 
     if "Blood Pressure Risk" in row["Health_Profile"]:
-        recommendations.append(
-            "Reduce sodium intake and follow a DASH-style eating pattern."
-        )
+        recommendations.append("Reduce sodium intake and follow a DASH-style eating pattern.")
         increase_foods.extend(["vegetables", "fruits", "low-fat dairy", "potassium-rich foods"])
-        limit_foods.extend(["salty snacks", "processed meats", "instant soups", "high-sodium packaged foods"])
+        limit_foods.extend(
+            ["salty snacks", "processed meats", "instant soups", "high-sodium packaged foods"]
+        )
 
     if "Cardiovascular Lipid Risk" in row["Health_Profile"]:
         recommendations.append(
             "Reduce saturated fat and refined carbohydrates; prefer heart-healthy fats."
         )
         increase_foods.extend(["olive oil", "nuts", "fish", "avocado", "fiber-rich foods"])
-        limit_foods.extend(["processed meats", "butter", "fried foods", "trans fats", "sugary foods"])
+        limit_foods.extend(
+            ["processed meats", "butter", "fried foods", "trans fats", "sugary foods"]
+        )
 
     if "Kidney / Muscle Indicator" in row["Health_Profile"]:
         if row.get("Creatinine_Risk_Level") == "High Risk":
@@ -726,7 +786,9 @@ def generate_recommendations(row):
                 "Limit excessive protein intake, reduce sodium, and avoid ultra-processed foods."
             )
             increase_foods.extend(["fresh vegetables", "balanced meals", "water"])
-            limit_foods.extend(["excessive protein supplements", "processed foods", "high-sodium foods"])
+            limit_foods.extend(
+                ["excessive protein supplements", "processed foods", "high-sodium foods"]
+            )
 
         elif row.get("Creatinine_Risk_Level") == "Low":
             recommendations.append(
@@ -737,9 +799,7 @@ def generate_recommendations(row):
 
     if "Hemoglobin Indicator" in row["Health_Profile"]:
         if row.get("Hemoglobin_Risk_Level") == "Low Hemoglobin Risk":
-            recommendations.append(
-                "Increase iron-rich foods and pair them with vitamin C sources."
-            )
+            recommendations.append("Increase iron-rich foods and pair them with vitamin C sources.")
             increase_foods.extend(["lean red meat", "lentils", "beans", "spinach", "citrus fruits"])
             limit_foods.extend(["tea or coffee immediately with iron-rich meals"])
 
@@ -747,15 +807,30 @@ def generate_recommendations(row):
         recommendations.append(
             "Support immune and inflammatory balance with antioxidant-rich foods, adequate protein, hydration, and omega-3 sources."
         )
-        increase_foods.extend(["vegetables", "fruits", "berries", "fish", "walnuts", "yogurt", "adequate protein"])
+        increase_foods.extend(
+            ["vegetables", "fruits", "berries", "fish", "walnuts", "yogurt", "adequate protein"]
+        )
         limit_foods.extend(["ultra-processed foods", "excess sugar", "fried foods"])
 
     if "Blood Cell / Anemia Support Indicator" in row["Health_Profile"]:
         recommendations.append(
             "Support blood cell health with iron, folate, vitamin B12, vitamin C, and adequate protein intake."
         )
-        increase_foods.extend(["lean red meat", "eggs", "fish", "lentils", "beans", "spinach", "citrus fruits", "dairy products"])
-        limit_foods.extend(["tea or coffee immediately with iron-rich meals", "very low-calorie diets"])
+        increase_foods.extend(
+            [
+                "lean red meat",
+                "eggs",
+                "fish",
+                "lentils",
+                "beans",
+                "spinach",
+                "citrus fruits",
+                "dairy products",
+            ]
+        )
+        limit_foods.extend(
+            ["tea or coffee immediately with iron-rich meals", "very low-calorie diets"]
+        )
 
     if "Platelet Support Indicator" in row["Health_Profile"]:
         recommendations.append(
@@ -768,15 +843,21 @@ def generate_recommendations(row):
         recommendations.append(
             "Liver enzyme changes should be reviewed with a healthcare professional. Reduce alcohol, fried foods, and excess sugar to support liver health."
         )
-        increase_foods.extend(["vegetables", "whole grains", "coffee without sugar", "omega-3 rich foods"])
+        increase_foods.extend(
+            ["vegetables", "whole grains", "coffee without sugar", "omega-3 rich foods"]
+        )
         limit_foods.extend(["alcohol", "fried foods", "sugary drinks", "processed foods"])
 
     if "Thyroid / Metabolism Indicator" in row["Health_Profile"]:
         recommendations.append(
             "Thyroid-related lab changes should be reviewed with a healthcare professional; this is not a medical diagnosis. Support thyroid-related metabolism with balanced meals, adequate protein, selenium, zinc, iodine, and regular meal patterns."
         )
-        increase_foods.extend(["eggs", "fish", "yogurt", "dairy products", "selenium-rich foods", "balanced meals"])
-        limit_foods.extend(["very low-calorie diets", "meal skipping", "ultra-processed foods", "excess sugar"])
+        increase_foods.extend(
+            ["eggs", "fish", "yogurt", "dairy products", "selenium-rich foods", "balanced meals"]
+        )
+        limit_foods.extend(
+            ["very low-calorie diets", "meal skipping", "ultra-processed foods", "excess sugar"]
+        )
 
     if "Diet Quality Risk" in row["Health_Profile"]:
         recommendations.append(
@@ -796,15 +877,28 @@ def generate_recommendations(row):
         recommendations.append(
             "Low vitamin D should be reviewed with a healthcare professional. Support bone health with vitamin D, calcium, protein, and safe sunlight exposure when appropriate."
         )
-        increase_foods.extend(["fatty fish", "eggs", "fortified dairy", "yogurt", "calcium-rich foods", "vitamin D foods"])
+        increase_foods.extend(
+            [
+                "fatty fish",
+                "eggs",
+                "fortified dairy",
+                "yogurt",
+                "calcium-rich foods",
+                "vitamin D foods",
+            ]
+        )
         limit_foods.extend(["very low-calorie diets", "nutrient-poor processed foods"])
 
     if "Micronutrient Support Indicator" in row["Health_Profile"]:
         recommendations.append(
             "Micronutrient abnormalities should be interpreted with clinical context. Support iron, folate, B12, vitamin C, and protein intake based on the specific deficiency pattern."
         )
-        increase_foods.extend(["lean red meat", "eggs", "fish", "lentils", "beans", "leafy greens", "citrus fruits"])
-        limit_foods.extend(["tea or coffee immediately with iron-rich meals", "very restrictive diets"])
+        increase_foods.extend(
+            ["lean red meat", "eggs", "fish", "lentils", "beans", "leafy greens", "citrus fruits"]
+        )
+        limit_foods.extend(
+            ["tea or coffee immediately with iron-rich meals", "very restrictive diets"]
+        )
 
     add_food_guide_to_recommendations(
         row,
@@ -817,18 +911,22 @@ def generate_recommendations(row):
         recommendations.append(
             "Maintain a balanced diet with regular meals, adequate fiber, lean protein, and healthy fats."
         )
-        increase_foods.extend(["vegetables", "fruits", "whole grains", "lean protein", "healthy fats"])
+        increase_foods.extend(
+            ["vegetables", "fruits", "whole grains", "lean protein", "healthy fats"]
+        )
         limit_foods.extend(["excess sugar", "processed foods", "trans fats"])
 
     recommendations = list(dict.fromkeys(recommendations))
     increase_foods = list(dict.fromkeys(increase_foods))
     limit_foods = list(dict.fromkeys(limit_foods))
 
-    return pd.Series({
-        "Nutrition_Recommendation": " ".join(recommendations),
-        "Foods_To_Increase": ", ".join(increase_foods),
-        "Foods_To_Limit": ", ".join(limit_foods)
-    })
+    return pd.Series(
+        {
+            "Nutrition_Recommendation": " ".join(recommendations),
+            "Foods_To_Increase": ", ".join(increase_foods),
+            "Foods_To_Limit": ", ".join(limit_foods),
+        }
+    )
 
 
 # =========================================================
@@ -842,7 +940,6 @@ test_patterns = {
     "Red_Blood_Cells_count": r"(?im)^\s*RBC\s+([<>]?\s*\d+(?:[.,]\d+)?)",
     "White_Blood_Cells_count": r"(?im)^\s*WBC\s+([<>]?\s*\d+(?:[.,]\d+)?)",
     "Platelet_count": r"(?im)^\s*PLT\s+([<>]?\s*\d+(?:[.,]\d+)?)",
-
     "Glucose_mgdL": r"(?im)^\s*(?:GLUCOSE|Glucose|GLUKOZ|Glukoz|Açlık Kan Şekeri|Aclik Kan Sekeri)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
     "HbA1c_Percent": r"(?im)^\s*(?:HbA1c|HBA1C|Hemoglobin A1c)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
     "Cholesterol_Total_mgdL": r"(?im)^\s*(?:Total Cholesterol|TOTAL CHOLESTEROL|Kolesterol|Total Kolesterol)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
@@ -907,18 +1004,38 @@ def extract_lab_values(text):
     return results
 
 
-def build_patient_dataframe(lab_values, gender="Female", age=22, weight_kg=np.nan, height_cm=np.nan):
+def summarize_pdf_lab_coverage(lab_values):
+    observed = {
+        key for key, value in lab_values.items() if key in test_patterns and pd.notna(value)
+    }
+    observed_domains = sorted(
+        domain for domain, columns in PDF_LAB_DOMAINS.items() if observed.intersection(columns)
+    )
+    if not observed:
+        status = "insufficient"
+    elif len(observed) >= 5 and len(observed_domains) >= 3:
+        status = "sufficient_for_screening"
+    else:
+        status = "limited"
+    return {
+        "Observed_Lab_Count": len(observed),
+        "Observed_Lab_Domains": ", ".join(observed_domains),
+        "Data_Quality_Status": status,
+    }
+
+
+def build_patient_dataframe(
+    lab_values, gender="Female", age=22, weight_kg=np.nan, height_cm=np.nan
+):
     patient = {
         "Gender": gender,
         "Age": age,
-
         "Weight_kg": weight_kg,
         "Height_cm": height_cm,
         "BMI": np.nan,
         "Waist_Circumference_cm": np.nan,
         "BP_Systolic_mmHg": np.nan,
         "BP_Diastolic_mmHg": np.nan,
-
         "Glucose_mgdL": np.nan,
         "HbA1c_Percent": np.nan,
         "Cholesterol_Total_mgdL": np.nan,
@@ -942,19 +1059,16 @@ def build_patient_dataframe(lab_values, gender="Female", age=22, weight_kg=np.na
         "Sedimentation_mm_h": np.nan,
         "Free_T3_pg_mL": np.nan,
         "Free_T4_ng_dL": np.nan,
-
         "Daily_Fiber_g": np.nan,
         "Daily_Sugar_g": np.nan,
         "Daily_Fat_g": np.nan,
         "Daily_Cholesterol_mg": np.nan,
-
         "White_Blood_Cells_count": np.nan,
         "Hemoglobin_gdL": np.nan,
         "Hematocrit_Percent": np.nan,
         "Red_Blood_Cells_count": np.nan,
         "Platelet_count": np.nan,
-
-        "TSH_mIU_L": np.nan
+        "TSH_mIU_L": np.nan,
     }
 
     patient.update(lab_values)
@@ -980,6 +1094,10 @@ def analyze_pdf_report(pdf_path, gender="Female", age=22, weight_kg=np.nan, heig
         weight_kg=weight_kg,
         height_cm=height_cm,
     )
+    patient_df["Analysis_Source"] = "pdf"
+    coverage = summarize_pdf_lab_coverage(lab_values)
+    for key, value in coverage.items():
+        patient_df[key] = value
     for key in ["Report_Date", "Birth_Date"]:
         if key in metadata:
             patient_df[key] = metadata[key]
@@ -988,13 +1106,11 @@ def analyze_pdf_report(pdf_path, gender="Female", age=22, weight_kg=np.nan, heig
 
     patient_df["Health_Profile"] = patient_df.apply(create_health_profile, axis=1)
 
-    patient_df[[
-        "Nutrition_Recommendation",
-        "Foods_To_Increase",
-        "Foods_To_Limit"
-    ]] = patient_df.apply(generate_recommendations, axis=1)
+    patient_df[["Nutrition_Recommendation", "Foods_To_Increase", "Foods_To_Limit"]] = (
+        patient_df.apply(generate_recommendations, axis=1)
+    )
 
-    extracted_values = {**metadata, **lab_values}
+    extracted_values = {**metadata, **lab_values, **coverage}
     for column in ["Weight_kg", "Height_cm", "BMI"]:
         value = patient_df.loc[0, column] if column in patient_df.columns else np.nan
         if pd.notna(value):
@@ -1006,7 +1122,9 @@ def analyze_pdf_report(pdf_path, gender="Female", age=22, weight_kg=np.nan, heig
 # MAIN
 # =========================================================
 
+
 def main():
+    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     print("Loading dataset...")
     df = pd.read_csv(DATASET_PATH)
 
@@ -1017,11 +1135,9 @@ def main():
 
     df["Health_Profile"] = df.apply(create_health_profile, axis=1)
 
-    df[[
-        "Nutrition_Recommendation",
-        "Foods_To_Increase",
-        "Foods_To_Limit"
-    ]] = df.apply(generate_recommendations, axis=1)
+    df[["Nutrition_Recommendation", "Foods_To_Increase", "Foods_To_Limit"]] = df.apply(
+        generate_recommendations, axis=1
+    )
 
     df.to_csv(RECOMMENDATION_OUTPUT, index=False)
     df.to_csv(RISK_OUTPUT, index=False)
@@ -1030,13 +1146,13 @@ def main():
     print("Saved:", RISK_OUTPUT)
     print("Dataset shape:", df.shape)
 
+    if not PDF_PATH:
+        print("\nPDF analysis skipped. Set BIODIETIX_PDF_PATH to analyze a local report.")
+        return
+
     try:
         print("\nAnalyzing PDF report...")
-        patient_df, lab_values, text = analyze_pdf_report(
-            PDF_PATH,
-            gender="Female",
-            age=22
-        )
+        patient_df, lab_values, text = analyze_pdf_report(PDF_PATH, gender="Female", age=22)
 
         patient_df.to_csv(PDF_OUTPUT, index=False)
 
@@ -1044,12 +1160,16 @@ def main():
         print(lab_values)
 
         print("\nPDF Recommendation Result:")
-        print(patient_df[[
-            "Health_Profile",
-            "Nutrition_Recommendation",
-            "Foods_To_Increase",
-            "Foods_To_Limit"
-        ]])
+        print(
+            patient_df[
+                [
+                    "Health_Profile",
+                    "Nutrition_Recommendation",
+                    "Foods_To_Increase",
+                    "Foods_To_Limit",
+                ]
+            ]
+        )
 
         print("Saved:", PDF_OUTPUT)
 

@@ -3,3 +3,8 @@ __pycache__/
 *.py[cod]
 .streamlit/
 .env
+artifacts/
+uploads/
+Patient_PDF_Recommendation_Result.csv
+BioDietix_Risk_Analysis.csv
+*.log

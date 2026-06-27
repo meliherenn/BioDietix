@@ -1,22 +1,45 @@
 import 'dart:convert';
+import 'dart:math';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../i18n.dart';
 import '../../models/personal_info.dart';
 import '../../models/profile_memory.dart';
-import '../../features/meal_logs/domain/meal_log.dart';
 import '../../features/product_checks/domain/product_check.dart';
 
 class HiveLocalStore {
   static const _boxName = 'biodietix_local';
+  static const _encryptionKeyName = 'biodietix_hive_key_v1';
+  static const _secureStorage = FlutterSecureStorage();
 
   Future<void> init() async {
     await Hive.initFlutter();
-    if (!Hive.isBoxOpen(_boxName)) {
-      await Hive.openBox<dynamic>(_boxName);
+    if (Hive.isBoxOpen(_boxName)) return;
+
+    var encodedKey = await _secureStorage.read(key: _encryptionKeyName);
+    Map<dynamic, dynamic> legacyValues = const {};
+    if (encodedKey == null) {
+      if (await Hive.boxExists(_boxName)) {
+        final legacyBox = await Hive.openBox<dynamic>(_boxName);
+        legacyValues = legacyBox.toMap();
+        await legacyBox.close();
+        await Hive.deleteBoxFromDisk(_boxName);
+      }
+      final random = Random.secure();
+      final key = List<int>.generate(32, (_) => random.nextInt(256));
+      encodedKey = base64UrlEncode(key);
+      await _secureStorage.write(key: _encryptionKeyName, value: encodedKey);
     }
+
+    final encryptionKey = base64Url.decode(encodedKey);
+    final box = await Hive.openBox<dynamic>(
+      _boxName,
+      encryptionCipher: HiveAesCipher(encryptionKey),
+    );
+    if (legacyValues.isNotEmpty) await box.putAll(legacyValues);
   }
 
   Box<dynamic> get _box => Hive.box<dynamic>(_boxName);
@@ -100,25 +123,6 @@ class HiveLocalStore {
     await _box.put(_key(uid, 'profilePhotoUrl'), url);
   }
 
-  Future<List<MealLog>> loadMealLogs(String uid) async {
-    final raw = _box.get(_key(uid, 'mealLogs'));
-    if (raw is! String || raw.isEmpty) return const [];
-    final decoded = jsonDecode(raw);
-    if (decoded is! List) return const [];
-    return decoded.whereType<Map>().map((item) {
-      return MealLog.fromJson(
-        item.map((key, value) => MapEntry(key.toString(), value)),
-      );
-    }).toList();
-  }
-
-  Future<void> saveMealLogs(String uid, List<MealLog> items) async {
-    await _box.put(
-      _key(uid, 'mealLogs'),
-      jsonEncode(items.map((item) => item.toJson()).toList()),
-    );
-  }
-
   Future<List<ProductCheck>> loadProductChecks(String uid) async {
     final raw = _box.get(_key(uid, 'productChecks'));
     if (raw is! String || raw.isEmpty) return const [];
@@ -142,6 +146,13 @@ class HiveLocalStore {
     await _box.delete(_key(uid, 'profileMemory'));
     await _box.delete(_key(uid, 'personalInfo'));
     await _box.delete(_key(uid, 'extractedValues'));
+    await _box.delete(_key(uid, 'profilePhotoUrl'));
+  }
+
+  Future<void> clearAllUserData(String uid) async {
+    await clearHealthData(uid);
+    await _box.delete(_key(uid, 'mealLogs'));
+    await _box.delete(_key(uid, 'productChecks'));
   }
 
   Map<String, dynamic>? _jsonMap(dynamic value) {

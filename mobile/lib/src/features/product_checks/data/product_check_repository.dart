@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/config/app_config.dart';
@@ -60,7 +58,7 @@ class ProductCheckRepository {
 
     await _upsertCache(uid, item);
     if (doc != null) {
-      _ignoreFirestore(doc.set(_toFirestore(item)));
+      await doc.set(_toFirestore(item));
     }
     return item;
   }
@@ -73,11 +71,9 @@ class ProductCheckRepository {
     final updated = item.copyWith(note: note, updatedAt: DateTime.now());
     await _upsertCache(uid, updated);
     if (firebaseReady) {
-      _ignoreFirestore(
-        _collection(
-          uid,
-        ).doc(item.id).set(_toFirestore(updated), SetOptions(merge: true)),
-      );
+      await _collection(
+        uid,
+      ).doc(item.id).set(_toFirestore(updated), SetOptions(merge: true));
     }
     return updated;
   }
@@ -88,12 +84,8 @@ class ProductCheckRepository {
     )).where((cached) => cached.id != item.id).toList();
     await localStore.saveProductChecks(uid, next);
     if (firebaseReady) {
-      _ignoreFirestore(_collection(uid).doc(item.id).delete());
+      await _collection(uid).doc(item.id).delete();
     }
-  }
-
-  void _ignoreFirestore(Future<void> operation) {
-    unawaited(operation.catchError((Object _) {}));
   }
 
   Future<void> _upsertCache(String uid, ProductCheck item) async {

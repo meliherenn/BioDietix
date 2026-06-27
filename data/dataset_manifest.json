@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "provenance_status": "unverified",
+  "files": {
+    "BioDietix_CLEAN.csv": {
+      "sha256": "4fce973a97c684166ba2bb80fc187804e6c1e5037339da2af28a7180a0609c81",
+      "bytes": 13674958,
+      "data_rows": 46750,
+      "role": "derived_analysis_input"
+    },
+    "BioDietix_Recommendation_System.csv": {
+      "sha256": "06869279becb828184e9ff5f97c7078410fe6a8a6fdb4ecce99dfc9e0cd2245c",
+      "bytes": 59015549,
+      "data_rows": 46750,
+      "role": "generated_web_default"
+    },
+    "data/food_recommendations.csv": {
+      "sha256": "d29e2f2e38d51a4771a3c4eb3592210aa95eb8ed13def2dbabb18ffadbcd6571",
+      "bytes": 1325,
+      "role": "curated_rule_guide"
+    }
+  },
+  "required_before_research_use": [
+    "authoritative_source_urls",
+    "source_licenses",
+    "acquisition_dates",
+    "cycle_variable_mapping",
+    "deterministic_etl_pipeline",
+    "survey_weight_methodology"
+  ]
+}

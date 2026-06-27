@@ -109,7 +109,9 @@ class ProfileRepository {
     required List<String> allergies,
     ProfileMemory? profileMemory,
   }) async {
-    final memory = profileMemory?.copyWithAllergies(allergies);
+    final memory = profileMemory
+        ?.copyWithAllergies(allergies)
+        .copyWithPersonalInfo(personalInfo);
     await localStore.savePersonalInfo(uid, personalInfo);
     if (memory != null) await localStore.saveProfileMemory(uid, memory);
 
@@ -165,13 +167,7 @@ class ProfileRepository {
       throw StateError('Firebase Storage is not configured.');
     }
 
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child(config.environmentCollection)
-        .child('users')
-        .child(uid)
-        .child('profile')
-        .child('photo.jpg');
+    final ref = _profilePhotoRef(uid);
 
     await ref.putFile(file, SettableMetadata(contentType: 'image/jpeg'));
     final url = await ref.getDownloadURL();
@@ -183,16 +179,60 @@ class ProfileRepository {
     return url;
   }
 
+  Reference _profilePhotoRef(String uid) {
+    return FirebaseStorage.instance
+        .ref()
+        .child(config.environmentCollection)
+        .child('users')
+        .child(uid)
+        .child('profile')
+        .child('photo.jpg');
+  }
+
   Future<void> clearHealthData(String uid) async {
     await localStore.clearHealthData(uid);
     if (!firebaseReady) return;
+    try {
+      await _profilePhotoRef(uid).delete();
+    } on FirebaseException catch (error) {
+      if (error.code != 'object-not-found') rethrow;
+    }
     await _userDoc(uid).set({
       'personalInfo': FieldValue.delete(),
       'profileMemory': FieldValue.delete(),
       'extractedValues': FieldValue.delete(),
       'allergies': <String>[],
+      'photoUrl': FieldValue.delete(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  Future<void> deleteAllUserData(String uid) async {
+    await localStore.clearAllUserData(uid);
+    if (!firebaseReady) return;
+
+    await _deleteCollection(_userDoc(uid).collection('product_checks'));
+    await _deleteCollection(_userDoc(uid).collection('meal_logs'));
+    try {
+      await _profilePhotoRef(uid).delete();
+    } on FirebaseException catch (error) {
+      if (error.code != 'object-not-found') rethrow;
+    }
+    await _userDoc(uid).delete();
+  }
+
+  Future<void> _deleteCollection(
+    CollectionReference<Map<String, dynamic>> collection,
+  ) async {
+    while (true) {
+      final snapshot = await collection.limit(400).get();
+      if (snapshot.docs.isEmpty) return;
+      final batch = FirebaseFirestore.instance.batch();
+      for (final document in snapshot.docs) {
+        batch.delete(document.reference);
+      }
+      await batch.commit();
+    }
   }
 
   Future<void> _cache(String uid, ProfileSnapshot snapshot) async {

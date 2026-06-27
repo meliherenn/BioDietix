@@ -1,4 +1,6 @@
 import html
+import hmac
+import os
 import re
 
 import pandas as pd
@@ -8,7 +10,6 @@ from utils.biodietix_web import (
     BioDietixDataError,
     BioDietixPDFError,
     DEFAULT_DATA_PATH,
-    DEFAULT_PDF_PATH,
     DEFAULT_RECOMMENDATION_PATH,
     OUTPUT_COLUMNS,
     RISK_COLUMNS,
@@ -84,13 +85,16 @@ TEXT = {
         "current_file": "Current file",
         "csv_file": "CSV file",
         "pdf_file": "PDF laboratory/report file",
-        "use_sample_pdf": "Use sample PDF from repository",
         "allergy_profile": "Allergy profile",
         "common_allergies": "Known food allergies",
         "manual_allergies": "Other allergies",
         "manual_allergies_help": "Separate multiple allergies with commas.",
         "allergy_pdf_file": "Allergy test PDF (optional)",
         "allergy_pdf_note": "Allergy data is used for product suitability checks.",
+        "health_upload_consent":
+            "I am authorized to process this report and consent to transient server-side analysis.",
+        "health_upload_consent_required":
+            "Consent is required before a health report can be processed.",
         "gender": "Gender",
         "age": "Age",
         "anthropometrics": "Body measurements",
@@ -224,13 +228,16 @@ TEXT = {
         "current_file": "Kullanılan dosya",
         "csv_file": "CSV dosyası",
         "pdf_file": "PDF laboratuvar/rapor dosyası",
-        "use_sample_pdf": "Repodaki örnek PDF'i kullan",
         "allergy_profile": "Alerji profili",
         "common_allergies": "Bilinen gıda alerjileri",
         "manual_allergies": "Diğer alerjiler",
         "manual_allergies_help": "Birden fazla alerjiyi virgülle ayırın.",
         "allergy_pdf_file": "Alerji testi PDF'i (opsiyonel)",
         "allergy_pdf_note": "Alerji verisi ürün uygunluğu kontrolünde kullanılır.",
+        "health_upload_consent":
+            "Bu raporu işlemeye yetkiliyim ve sunucuda geçici olarak analiz edilmesini onaylıyorum.",
+        "health_upload_consent_required":
+            "Sağlık raporu işlenmeden önce onay gereklidir.",
         "gender": "Cinsiyet",
         "age": "Yaş",
         "anthropometrics": "Vücut ölçüleri",
@@ -342,6 +349,8 @@ TEXT = {
 
 PROFILE_TRANSLATIONS = {
     "Low Risk": "Düşük Risk",
+    "Insufficient Data": "Yetersiz Veri",
+    "No Flagged Risk in Available Data": "Mevcut Veride İşaretlenen Risk Yok",
     "Blood Sugar Risk": "Kan Şekeri Riski",
     "Weight Management Risk": "Kilo Yönetimi Riski",
     "Blood Pressure Risk": "Tansiyon Riski",
@@ -812,9 +821,34 @@ PRODUCT_ALTERNATIVE_TEXT = {
 
 
 st.set_page_config(
-    page_title="BioDietix ML",
+    page_title="BioDietix",
     layout="wide",
 )
+
+
+def require_web_access():
+    environment = os.getenv("BIODIETIX_ENV", "development").lower()
+    expected_password = os.getenv("BIODIETIX_WEB_PASSWORD", "")
+    if not expected_password and environment != "production":
+        return
+    if not expected_password:
+        st.error("Production web access is disabled until BIODIETIX_WEB_PASSWORD is configured.")
+        st.stop()
+    if st.session_state.get("web_authenticated"):
+        return
+
+    st.title("BioDietix")
+    st.warning("Protected health-data workspace / Korumalı sağlık verisi çalışma alanı")
+    password = st.text_input("Access password / Erişim parolası", type="password")
+    if st.button("Continue / Devam et"):
+        if hmac.compare_digest(password, expected_password):
+            st.session_state["web_authenticated"] = True
+            st.rerun()
+        st.error("Access denied / Erişim reddedildi")
+    st.stop()
+
+
+require_web_access()
 
 
 st.markdown(
@@ -1281,6 +1315,17 @@ def cached_food_guide():
     return food_guide_dataframe()
 
 
+@st.cache_data(show_spinner=False)
+def cached_default_results(path_string, modified_ns):
+    del modified_ns  # Cache invalidation key; the file content is read below.
+    dataframe = read_csv_data(path_string)
+    return ensure_recommendation_columns(
+        dataframe,
+        refresh_existing=True,
+        refresh_profiles=True,
+    )
+
+
 def clean_text(value, column=None):
     value = localize_value(column, value) if column else value
     if pd.isna(value) or str(value).strip() == "":
@@ -1513,7 +1558,7 @@ def render_simple_metric_grid(metrics):
 def render_summary(results):
     profiles = (
         results["Health_Profile"]
-        .fillna("Low Risk")
+        .fillna("Insufficient Data")
         .astype(str)
         .str.split(", ")
         .explode()
@@ -1794,7 +1839,6 @@ with st.sidebar:
     uploaded_csv = None
     uploaded_pdf = None
     uploaded_allergy_pdf = None
-    use_sample_pdf = False
     gender = "Female"
     age = 22
     weight_kg = None
@@ -1813,10 +1857,6 @@ with st.sidebar:
         uploaded_csv = st.file_uploader(t("csv_file"), type=["csv"])
     else:
         uploaded_pdf = st.file_uploader(t("pdf_file"), type=["pdf"])
-        use_sample_pdf = st.checkbox(
-            f"{t('use_sample_pdf')} ({DEFAULT_PDF_PATH.name})",
-            value=False,
-        )
         gender = st.selectbox(
             t("gender"),
             ["Female", "Male"],
@@ -1858,6 +1898,7 @@ with st.sidebar:
         key="allergy_pdf_upload",
     )
     st.caption(t("allergy_pdf_note"))
+    health_upload_consent = st.checkbox(t("health_upload_consent"), value=False)
 
     if source_type != "upload_pdf":
         run_ml_audit_enabled = st.checkbox(
@@ -1881,6 +1922,8 @@ analysis_failed = False
 if analyze_clicked:
     try:
         with st.spinner(t("running")):
+            if (uploaded_pdf is not None or uploaded_allergy_pdf is not None) and not health_upload_consent:
+                raise BioDietixPDFError(t("health_upload_consent_required"))
             allergies, detected_allergies, allergy_pdf_text = collect_allergies(
                 selected_allergies,
                 manual_allergies,
@@ -1891,10 +1934,9 @@ if analyze_clicked:
 
             if source_type == "default_csv":
                 if DEFAULT_RECOMMENDATION_PATH.exists():
-                    results_df = ensure_recommendation_columns(
-                        read_csv_data(DEFAULT_RECOMMENDATION_PATH),
-                        refresh_existing=True,
-                        refresh_profiles=True,
+                    results_df = cached_default_results(
+                        str(DEFAULT_RECOMMENDATION_PATH),
+                        DEFAULT_RECOMMENDATION_PATH.stat().st_mtime_ns,
                     )
                 else:
                     input_df = read_csv_data(DEFAULT_DATA_PATH)
@@ -1907,9 +1949,7 @@ if analyze_clicked:
                 results_df = analyze_dataframe(input_df)
 
             else:
-                if use_sample_pdf:
-                    pdf_source = DEFAULT_PDF_PATH
-                elif uploaded_pdf is not None:
+                if uploaded_pdf is not None:
                     pdf_source = uploaded_pdf
                 else:
                     raise BioDietixPDFError(t("upload_pdf_required"))

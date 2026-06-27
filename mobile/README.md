@@ -39,12 +39,17 @@ Android uygulamasıdır.
 - Flutter 3.44+.
 - Android SDK ve bağlı cihaz/emülatör.
 - Firebase projesinde Email/Password ve Google Authentication.
+- Firebase App Check: dev için kayıtlı debug token, prod için Play Integrity.
 - Android paket adı: `com.biodietix.biodietix_mobile`.
 - `android/app/google-services.json` dosyası.
 
 Firebase Google girişi için Android uygulamasına SHA-1 ve SHA-256 sertifika
 parmak izleri eklenmelidir. Firebase ayarları değiştirildikten sonra
 `google-services.json` yeniden indirilmelidir.
+
+Geliştirme uygulamasının logunda gösterilen App Check debug token Firebase
+Console'a kaydedilmelidir. Üretimde Play Integrity sağlayıcısını etkinleştirin;
+backend prod ortamında `X-Firebase-AppCheck` tokenını zorunlu tutar.
 
 ## Backend
 
@@ -54,11 +59,15 @@ Uygulama prod build'de varsayılan olarak canlı BioDietix API adresine bağlan�
 https://biodietix-ml.onrender.com
 ```
 
+Uygulama `/v1` isteklerinde Firebase ID token gönderir. Üretim backend'i anonim
+istekleri kabul etmez. Yerel emülatör için `http://10.0.2.2` desteklenir; diğer
+uzak adreslerde HTTPS zorunludur.
+
 Yerel backend çalıştırmak için repo kökünde:
 
 ```bash
 source .venv/bin/activate
-uvicorn api:app --host 0.0.0.0 --port 8000
+BIODIETIX_AUTH_REQUIRED=false uvicorn api:app --host 0.0.0.0 --port 8000
 ```
 
 Geliştirme build'inde API adresi gerekirse dart define ile ezilebilir:
@@ -117,15 +126,17 @@ flutter pub get
 flutter analyze
 flutter test
 flutter build apk --debug --flavor dev --dart-define=FLAVOR=dev
-flutter build apk --release --flavor prod --dart-define=FLAVOR=prod
-adb install build/app/outputs/flutter-apk/app-prod-release.apk
 ```
 
-Flutter, mevcut Android/Kotlin Gradle plugin kullanımı için gelecek sürümlere
-yönelik uyarı veriyor. Bu uyarı mevcut build'i engellemedi; ileride Flutter'ın
-Built-in Kotlin geçiş rehberine göre güncelleme yapılmalıdır.
+Release görevinin `android/key.properties` yokken debug anahtarıyla devam
+etmediği doğrulandı. İmzalı release üretimi ve cihaz kurulumu için önce release
+keystore'u güvenli biçimde sağlayın.
 
 ## Tıbbi Uyarı
 
 BioDietix çıktıları eğitim/proje amaçlıdır. Tanı, tedavi veya profesyonel sağlık
 görüşünün yerine geçmez.
+
+Sağlık profili cihazda platform secure storage anahtarlı şifreli Hive kutusunda
+tutulur. Firestore ve Storage erişimi repo kökündeki UID tabanlı kurallarla
+sınırlandırılmalıdır.
