@@ -1,5 +1,6 @@
 import 'package:biodietix_mobile/src/models/personal_info.dart';
 import 'package:biodietix_mobile/src/models/profile_memory.dart';
+import 'package:biodietix_mobile/src/models/product_evaluation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -19,4 +20,12 @@ void main() {
       expect((updated.raw['personal_info'] as Map)['Age'], 30);
     },
   );
+
+  test('missing or unknown product decisions fail closed to caution', () {
+    expect(ProductEvaluation.fromJson(const {}).decision, 'use_with_caution');
+    expect(
+      ProductEvaluation.fromJson(const {'decision': 'safe'}).decision,
+      'use_with_caution',
+    );
+  });
 }

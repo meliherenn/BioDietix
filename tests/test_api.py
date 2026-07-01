@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from api import app
 from utils.api_auth import require_user
+from utils.api_config import APISettings, get_api_settings
 
 
 class APISecurityTests(unittest.TestCase):
@@ -54,6 +55,17 @@ class APISecurityTests(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         self.assertNotIn("input", response.text)
 
+    def test_unknown_payload_field_is_rejected(self):
+        app.dependency_overrides[require_user] = lambda: {"uid": "test-user"}
+        response = self.client.post(
+            "/v1/product/evaluate",
+            json={
+                "product": {"sugars_g_100g": 20},
+                "profile_memory": {},
+            },
+        )
+        self.assertEqual(response.status_code, 422)
+
     def test_upload_rejects_non_pdf_content(self):
         app.dependency_overrides[require_user] = lambda: {"uid": "test-user"}
         response = self.client.post(
@@ -61,6 +73,25 @@ class APISecurityTests(unittest.TestCase):
             files={"file": ("report.pdf", b"not a pdf", "application/pdf")},
         )
         self.assertEqual(response.status_code, 415)
+
+    def test_upload_rejects_pdf_over_configured_limit(self):
+        app.dependency_overrides[require_user] = lambda: {"uid": "test-user"}
+        app.dependency_overrides[get_api_settings] = lambda: APISettings(
+            environment="test",
+            auth_required=True,
+            app_check_required=False,
+            firebase_check_revoked=False,
+            expose_docs=False,
+            allowed_origins=(),
+            allowed_hosts=(),
+            max_pdf_bytes=64,
+            max_json_bytes=512 * 1024,
+        )
+        response = self.client.post(
+            "/v1/analyze/blood-pdf",
+            files={"file": ("report.pdf", b"%PDF-1.7\n" + b"x" * 100, "application/pdf")},
+        )
+        self.assertEqual(response.status_code, 413)
 
     def test_oversized_json_is_rejected_before_validation(self):
         response = self.client.post(

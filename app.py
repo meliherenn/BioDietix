@@ -73,8 +73,9 @@ TEXT = {
         "chip_food_guide": "Food guide",
         "medical_note_title": "Important medical note",
         "medical_warning": (
-            "This application is not intended for medical diagnosis or treatment. "
-            "Results should only be considered educational/project-based support information."
+            "BioDietix is not a medical device and does not diagnose, treat, cure, or prevent "
+            "any medical condition. Results are supportive information only; consult a "
+            "qualified healthcare professional."
         ),
         "language": "Language",
         "data_source": "Data Source",
@@ -200,7 +201,10 @@ TEXT = {
         "use_with_caution": "Use with caution",
         "not_recommended": "Not recommended",
         "no_profile_memory": "Run an analysis first so the product check can use the latest health profile.",
-        "product_medical_note": "This is educational guidance, not a medical diagnosis.",
+        "product_medical_note": (
+            "Supportive information only. BioDietix is not a medical device and does not "
+            "diagnose, treat, cure, or prevent any condition."
+        ),
     },
     "tr": {
         "header_eyebrow": "Beslenme Zekası Paneli",
@@ -216,8 +220,9 @@ TEXT = {
         "chip_food_guide": "Gıda rehberi",
         "medical_note_title": "Önemli tıbbi not",
         "medical_warning": (
-            "Bu uygulama tıbbi teşhis veya tedavi amacı taşımaz. Sonuçlar yalnızca "
-            "eğitim/proje amaçlı destekleyici bilgi olarak değerlendirilmelidir."
+            "BioDietix tıbbi cihaz değildir; herhangi bir sağlık durumunu teşhis, tedavi "
+            "veya önleme amacı taşımaz. Sonuçlar yalnızca destekleyici bilgidir; yetkili "
+            "bir sağlık profesyoneline danışın."
         ),
         "language": "Dil",
         "data_source": "Veri Kaynağı",
@@ -343,7 +348,10 @@ TEXT = {
         "use_with_caution": "Dikkatli tüketilmeli",
         "not_recommended": "Önerilmez",
         "no_profile_memory": "Ürün kontrolünün son sağlık profilini kullanabilmesi için önce analiz çalıştırın.",
-        "product_medical_note": "Bu değerlendirme eğitim amaçlıdır, tıbbi teşhis değildir.",
+        "product_medical_note": (
+            "Yalnızca destekleyici bilgidir. BioDietix tıbbi cihaz değildir; herhangi bir "
+            "durumu teşhis, tedavi veya önleme amacı taşımaz."
+        ),
     },
 }
 
@@ -607,6 +615,10 @@ GENERAL_VALUE_TRANSLATIONS = {
     "Low-Moderate": "Düşük-Orta",
     "Prediabetes Risk": "Prediyabet Riski",
     "High Diabetes Risk": "Yüksek Diyabet Riski",
+    "Prediabetes-Range Indicator": "Prediyabet Aralığı Göstergesi",
+    "Diabetes-Range Indicator - Clinical Confirmation Needed": (
+        "Diyabet Aralığı Göstergesi - Klinik Doğrulama Gerekir"
+    ),
     "Overweight Risk": "Fazla Kilo Riski",
     "Obesity Risk": "Obezite Riski",
     "Underweight": "Düşük Kilo",
@@ -614,8 +626,12 @@ GENERAL_VALUE_TRANSLATIONS = {
     "Elevated": "Yükselmiş",
     "Stage 1 Hypertension Risk": "Evre 1 Hipertansiyon Riski",
     "Stage 2 Hypertension Risk": "Evre 2 Hipertansiyon Riski",
+    "Severely Elevated BP Indicator - Prompt Clinical Review": (
+        "Ciddi Yüksek Tansiyon Göstergesi - Hızlı Klinik Değerlendirme"
+    ),
     "Low HDL Risk": "Düşük HDL Riski",
     "Reduced eGFR Indicator": "Azalmış eGFR Göstergesi",
+    "High Creatinine Indicator": "Yüksek Kreatinin Göstergesi",
     "Low Hemoglobin Risk": "Düşük Hemoglobin Riski",
     "High Hemoglobin": "Yüksek Hemoglobin",
     "Elevated AST Risk": "Yüksek AST Riski",
@@ -623,6 +639,7 @@ GENERAL_VALUE_TRANSLATIONS = {
     "Elevated CRP Indicator": "Yüksek CRP Göstergesi",
     "Low Vitamin D Indicator": "Düşük D Vitamini Göstergesi",
     "Vitamin D Insufficiency Indicator": "D Vitamini Yetersizliği Göstergesi",
+    "Vitamin D Inadequacy Indicator": "D Vitamini Yetersizlik Göstergesi",
     "Low Vitamin B12 Indicator": "Düşük B12 Vitamini Göstergesi",
     "Borderline Vitamin B12 Indicator": "Sınırda B12 Vitamini Göstergesi",
     "Low Folate Indicator": "Düşük Folat Göstergesi",

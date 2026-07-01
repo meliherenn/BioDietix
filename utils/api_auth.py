@@ -62,7 +62,7 @@ def require_user(
             check_revoked=settings.firebase_check_revoked,
         )
     except RuntimeError as exc:
-        LOGGER.exception("Firebase authentication is not configured")
+        LOGGER.error("firebase_authentication_unavailable error_type=%s", type(exc).__name__)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Authentication service unavailable.",
@@ -90,7 +90,7 @@ def require_user(
         try:
             _verify_app_check_token(app_check_token)
         except RuntimeError as exc:
-            LOGGER.exception("Firebase App Check is not configured")
+            LOGGER.error("firebase_app_check_unavailable error_type=%s", type(exc).__name__)
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="App attestation service unavailable.",

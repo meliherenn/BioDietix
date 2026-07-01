@@ -30,25 +30,33 @@ class APISettings:
     def from_environment(cls):
         environment = os.getenv("BIODIETIX_ENV", "development").strip().lower()
         auth_required = _bool_env("BIODIETIX_AUTH_REQUIRED", True)
+        app_check_required = _bool_env(
+            "BIODIETIX_APP_CHECK_REQUIRED",
+            environment == "production",
+        )
         allowed_origins = _csv_env("BIODIETIX_ALLOWED_ORIGINS")
+        allowed_hosts = _csv_env("BIODIETIX_ALLOWED_HOSTS")
         if environment == "production" and not auth_required:
             raise ValueError("Authentication cannot be disabled in production.")
+        if environment == "production" and not app_check_required:
+            raise ValueError("App Check cannot be disabled in production.")
         if environment == "production" and "*" in allowed_origins:
             raise ValueError("Wildcard CORS origins are not allowed in production.")
+        if environment == "production" and not allowed_hosts:
+            raise ValueError("Trusted hosts must be configured in production.")
+        if environment == "production" and "*" in allowed_hosts:
+            raise ValueError("Wildcard trusted hosts are not allowed in production.")
         return cls(
             environment=environment,
             auth_required=auth_required,
-            app_check_required=_bool_env(
-                "BIODIETIX_APP_CHECK_REQUIRED",
-                environment == "production",
-            ),
+            app_check_required=app_check_required,
             firebase_check_revoked=_bool_env(
                 "BIODIETIX_FIREBASE_CHECK_REVOKED",
                 environment == "production",
             ),
             expose_docs=_bool_env("BIODIETIX_EXPOSE_DOCS", environment != "production"),
             allowed_origins=allowed_origins,
-            allowed_hosts=_csv_env("BIODIETIX_ALLOWED_HOSTS"),
+            allowed_hosts=allowed_hosts,
             max_pdf_bytes=max(
                 1024,
                 int(os.getenv("BIODIETIX_MAX_PDF_BYTES", str(10 * 1024 * 1024))),

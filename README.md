@@ -1,8 +1,8 @@
 # BioDietix
 
-BioDietix; kan testi, beslenme profili, BMI ve alerji bilgilerini birlikte
-değerlendirerek kişiye özel beslenme önerileri ve market ürünü uygunluk
-kararları üreten Python + Flutter tabanlı bir öğrenci projesidir.
+BioDietix; kullanıcı tarafından sağlanan kan testi, beslenme profili, BMI ve
+alerji bilgilerini market ürünü etiketleriyle karşılaştıran Python + Flutter
+tabanlı bir beslenme destek uygulamasıdır.
 
 Proje; Streamlit web arayüzü, FastAPI mobil backend'i ve Firebase Auth kullanan
 Flutter Android uygulamasından oluşur. Mobil uygulama kullanıcının son sağlık
@@ -13,8 +13,10 @@ kan testi, BMI, alerji ve besin etiketi sinyallerine göre karar üretir.
 motorunun pseudo-label çıktısını denetleyen audit deneyleridir; API veya mobil
 uygulama tarafından inference modeli olarak kullanılmaz.
 
-> BioDietix tıbbi tanı veya tedavi aracı değildir. Çıktılar eğitim/proje amaçlı
-> destekleyici bilgi olarak değerlendirilmelidir.
+> BioDietix tıbbi cihaz değildir; herhangi bir hastalığı veya sağlık durumunu
+> teşhis, tedavi, iyileştirme ya da önleme amacı taşımaz. Çıktılar yalnızca
+> destekleyici bilgidir. Anormal sonuçlar ve önemli beslenme değişiklikleri için
+> yetkili bir sağlık profesyoneline danışılmalıdır.
 
 ## İçindekiler
 
@@ -182,18 +184,21 @@ flutter run \
   --dart-define=BIODIETIX_API_URL=http://10.0.2.2:8000
 ```
 
-Release APK üretin:
-
-```bash
-flutter build apk --release --flavor prod --dart-define=FLAVOR=prod
-```
-
-App Check zorunluluğu geçici olarak kapalı sideload testinde:
+Release APK üretin (yayın gizlilik politikası URL'sini kullanın):
 
 ```bash
 flutter build apk --release --flavor prod \
   --dart-define=FLAVOR=prod \
-  --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
+  --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://YOUR_PUBLIC_PRIVACY_POLICY
+```
+
+App Check kapalı kontrollü sideload testi yalnızca `dev` flavor ve App Check'i
+istemeyen yerel/staging backend ile yapılabilir:
+
+```bash
+flutter build apk --debug --flavor dev \
+  --dart-define=FLAVOR=dev \
+  --dart-define=BIODIETIX_API_URL=http://10.0.2.2:8000 \
   --dart-define=BIODIETIX_APP_CHECK_ENABLED=false
 ```
 
@@ -215,6 +220,7 @@ Play Store için App Bundle:
 flutter build appbundle --release --flavor prod \
   --dart-define=FLAVOR=prod \
   --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
+  --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://YOUR_PUBLIC_PRIVACY_POLICY \
   --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
@@ -338,13 +344,16 @@ bağımlılık audit işlerini çalıştırır.
 - [Karar sistemi/model card](docs/MODEL_CARD.md)
 - [Veri yönetişimi](docs/DATA.md)
 - [Deploy runbook](docs/DEPLOYMENT.md)
+- [Üretim hazırlık denetimi](docs/PRODUCTION_READINESS_AUDIT.md)
+- [Bilimsel doğrulama matrisi](docs/SCIENTIFIC_VALIDATION.md)
+- [Google Play hazırlık kontrol listesi](docs/PLAY_STORE_READINESS.md)
 - [Güvenlik politikası](SECURITY.md)
 - [Gizlilik ve veri işleme taslağı](PRIVACY.md)
 
 ## Lisans ve Uyarı
 
-Bu proje eğitim ve sunum amaçlıdır. Sağlıkla ilgili kararlar için yetkili sağlık
-profesyonellerine danışılmalıdır.
+Uygulama yalnızca destekleyici beslenme bilgisi sunar; tıbbi cihaz veya sağlık
+profesyonelinin yerine geçen bir hizmet değildir.
 
 Repoda henüz açık kaynak lisansı seçilmemiştir. Lisans seçimi proje sahibinin
 hukuki onayını gerektirir.

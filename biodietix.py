@@ -57,6 +57,11 @@ def is_risk(value):
 
 
 def clean_value(value):
+    # A bound such as "<100" is not an exact measurement. Treating it as 100
+    # could cross a decision threshold, so omit it until bounded values are
+    # represented explicitly by the API schema.
+    if re.match(r"\s*[<>]", str(value)):
+        return np.nan
     match = re.search(r"[-+]?\d+(?:[.,]\d+)?", str(value))
     if not match:
         return np.nan
@@ -109,7 +114,7 @@ def enrich_anthropometrics(data):
     return data
 
 
-def extract_pdf_text(pdf_path):
+def extract_pdf_text(pdf_path, max_pages=None, max_text_chars=None):
     try:
         import pdfplumber
     except ImportError as exc:
@@ -118,15 +123,25 @@ def extract_pdf_text(pdf_path):
             "pip install -r requirements.txt"
         ) from exc
 
-    text = ""
+    max_pages = max_pages or int(os.getenv("BIODIETIX_MAX_PDF_PAGES", "50"))
+    max_text_chars = max_text_chars or int(
+        os.getenv("BIODIETIX_MAX_PDF_TEXT_CHARS", "200000")
+    )
+    text_parts = []
+    text_length = 0
 
     with pdfplumber.open(pdf_path) as pdf:
+        if len(pdf.pages) > max_pages:
+            raise ValueError(f"PDF page count exceeds the {max_pages}-page limit.")
         for page in pdf.pages:
             page_text = page.extract_text()
             if page_text:
-                text += page_text + "\n"
+                text_length += len(page_text) + 1
+                if text_length > max_text_chars:
+                    raise ValueError("Extracted PDF text exceeds the processing limit.")
+                text_parts.append(page_text)
 
-    return text
+    return "\n".join(text_parts)
 
 
 # =========================================================
@@ -140,9 +155,9 @@ def glucose_risk(glucose):
     elif glucose < 100:
         return "Normal"
     elif glucose < 126:
-        return "Prediabetes Risk"
+        return "Prediabetes-Range Indicator"
     else:
-        return "High Diabetes Risk"
+        return "Diabetes-Range Indicator - Clinical Confirmation Needed"
 
 
 def hba1c_risk(hba1c):
@@ -151,9 +166,9 @@ def hba1c_risk(hba1c):
     elif hba1c < 5.7:
         return "Normal"
     elif hba1c < 6.5:
-        return "Prediabetes Risk"
+        return "Prediabetes-Range Indicator"
     else:
-        return "High Diabetes Risk"
+        return "Diabetes-Range Indicator - Clinical Confirmation Needed"
 
 
 def bmi_risk(bmi):
@@ -200,6 +215,8 @@ def bp_risk(sys_bp, dia_bp):
     if pd.isna(sys_bp) or pd.isna(dia_bp):
         return np.nan
 
+    if sys_bp > 180 or dia_bp > 120:
+        return "Severely Elevated BP Indicator - Prompt Clinical Review"
     if sys_bp < 120 and dia_bp < 80:
         return "Normal"
     elif 120 <= sys_bp < 130 and dia_bp < 80:
@@ -261,7 +278,7 @@ def creatinine_risk(gender, creatinine):
         elif creatinine <= 1.35:
             return "Normal"
         else:
-            return "High Risk"
+            return "High Creatinine Indicator"
 
     elif gender == "Female":
         if creatinine < 0.59:
@@ -269,7 +286,7 @@ def creatinine_risk(gender, creatinine):
         elif creatinine <= 1.04:
             return "Normal"
         else:
-            return "High Risk"
+            return "High Creatinine Indicator"
 
     return np.nan
 
@@ -329,10 +346,10 @@ def crp_risk(crp):
 def vitamin_d_risk(vitamin_d):
     if pd.isna(vitamin_d):
         return np.nan
-    if vitamin_d < 20:
+    if vitamin_d < 12:
         return "Low Vitamin D Indicator"
-    if vitamin_d < 30:
-        return "Vitamin D Insufficiency Indicator"
+    if vitamin_d < 20:
+        return "Vitamin D Inadequacy Indicator"
     return "Normal"
 
 
@@ -349,7 +366,7 @@ def b12_risk(vitamin_b12):
 def folate_risk(folate):
     if pd.isna(folate):
         return np.nan
-    return "Low Folate Indicator" if folate < 4.6 else "Normal"
+    return "Low Folate Indicator" if folate < 3 else "Normal"
 
 
 def ferritin_risk(gender, ferritin):
@@ -611,7 +628,11 @@ def create_health_profile(row):
     if row.get("BMI_Risk_Level") in ["Overweight Risk", "Obesity Risk"]:
         profiles.append("Weight Management Risk")
 
-    if row.get("BP_Risk_Level") in ["Stage 1 Hypertension Risk", "Stage 2 Hypertension Risk"]:
+    if row.get("BP_Risk_Level") in [
+        "Stage 1 Hypertension Risk",
+        "Stage 2 Hypertension Risk",
+        "Severely Elevated BP Indicator - Prompt Clinical Review",
+    ]:
         profiles.append("Blood Pressure Risk")
 
     if (
@@ -622,7 +643,7 @@ def create_health_profile(row):
         profiles.append("Cardiovascular Lipid Risk")
 
     if (
-        row.get("Creatinine_Risk_Level") in ["Low", "High Risk"]
+        row.get("Creatinine_Risk_Level") in ["Low", "High Creatinine Indicator"]
         or row.get("eGFR_Risk_Level") == "Reduced eGFR Indicator"
     ):
         profiles.append("Kidney / Muscle Indicator")
@@ -765,8 +786,12 @@ def generate_recommendations(row):
         limit_foods.extend(["meal skipping", "very restrictive diets"])
 
     if "Blood Pressure Risk" in row["Health_Profile"]:
+        if row.get("BP_Risk_Level") == "Severely Elevated BP Indicator - Prompt Clinical Review":
+            recommendations.append(
+                "This blood-pressure value is severely elevated. Recheck it correctly and seek prompt clinical advice; if there are symptoms such as chest pain, shortness of breath, weakness, vision change, or difficulty speaking, use local emergency services."
+            )
         recommendations.append("Reduce sodium intake and follow a DASH-style eating pattern.")
-        increase_foods.extend(["vegetables", "fruits", "low-fat dairy", "potassium-rich foods"])
+        increase_foods.extend(["vegetables", "fruits", "low-fat dairy"])
         limit_foods.extend(
             ["salty snacks", "processed meats", "instant soups", "high-sodium packaged foods"]
         )
@@ -781,13 +806,13 @@ def generate_recommendations(row):
         )
 
     if "Kidney / Muscle Indicator" in row["Health_Profile"]:
-        if row.get("Creatinine_Risk_Level") == "High Risk":
+        if row.get("Creatinine_Risk_Level") == "High Creatinine Indicator":
             recommendations.append(
-                "Limit excessive protein intake, reduce sodium, and avoid ultra-processed foods."
+                "A creatinine result should be interpreted with eGFR, hydration, muscle mass, medicines, and the laboratory range. Do not change protein or fluid intake based on this result alone; discuss it with a healthcare professional."
             )
             increase_foods.extend(["fresh vegetables", "balanced meals", "water"])
             limit_foods.extend(
-                ["excessive protein supplements", "processed foods", "high-sodium foods"]
+                ["high-dose protein supplements without clinical advice", "high-sodium foods"]
             )
 
         elif row.get("Creatinine_Risk_Level") == "Low":
@@ -799,13 +824,15 @@ def generate_recommendations(row):
 
     if "Hemoglobin Indicator" in row["Health_Profile"]:
         if row.get("Hemoglobin_Risk_Level") == "Low Hemoglobin Risk":
-            recommendations.append("Increase iron-rich foods and pair them with vitamin C sources.")
+            recommendations.append(
+                "A low hemoglobin indicator has several possible causes and should be discussed with a healthcare professional. Iron-containing foods may be reasonable, but do not start iron supplements without clinical advice."
+            )
             increase_foods.extend(["lean red meat", "lentils", "beans", "spinach", "citrus fruits"])
             limit_foods.extend(["tea or coffee immediately with iron-rich meals"])
 
     if "Immune / Inflammation Indicator" in row["Health_Profile"]:
         recommendations.append(
-            "Support immune and inflammatory balance with antioxidant-rich foods, adequate protein, hydration, and omega-3 sources."
+            "Inflammation or blood-cell indicators are nonspecific and should be interpreted with symptoms and other tests. A varied eating pattern with vegetables, fruit, adequate protein, and hydration is a general option."
         )
         increase_foods.extend(
             ["vegetables", "fruits", "berries", "fish", "walnuts", "yogurt", "adequate protein"]
@@ -850,11 +877,9 @@ def generate_recommendations(row):
 
     if "Thyroid / Metabolism Indicator" in row["Health_Profile"]:
         recommendations.append(
-            "Thyroid-related lab changes should be reviewed with a healthcare professional; this is not a medical diagnosis. Support thyroid-related metabolism with balanced meals, adequate protein, selenium, zinc, iodine, and regular meal patterns."
+            "Thyroid-related lab changes should be reviewed with a healthcare professional and the reporting laboratory's reference range. Do not start iodine, selenium, or thyroid supplements based on this result."
         )
-        increase_foods.extend(
-            ["eggs", "fish", "yogurt", "dairy products", "selenium-rich foods", "balanced meals"]
-        )
+        increase_foods.extend(["balanced meals", "adequate protein", "vegetables"])
         limit_foods.extend(
             ["very low-calorie diets", "meal skipping", "ultra-processed foods", "excess sugar"]
         )
@@ -875,7 +900,7 @@ def generate_recommendations(row):
 
     if "Vitamin D / Bone Health Indicator" in row["Health_Profile"]:
         recommendations.append(
-            "Low vitamin D should be reviewed with a healthcare professional. Support bone health with vitamin D, calcium, protein, and safe sunlight exposure when appropriate."
+            "A vitamin D indicator should be reviewed with a healthcare professional because thresholds and treatment decisions vary. Food sources of vitamin D, calcium, and protein can be part of a balanced diet; do not start high-dose supplements from this result alone."
         )
         increase_foods.extend(
             [
@@ -891,14 +916,23 @@ def generate_recommendations(row):
 
     if "Micronutrient Support Indicator" in row["Health_Profile"]:
         recommendations.append(
-            "Micronutrient abnormalities should be interpreted with clinical context. Support iron, folate, B12, vitamin C, and protein intake based on the specific deficiency pattern."
+            "Micronutrient indicators require the laboratory range and clinical context. Discuss abnormal results before starting or stopping any supplement."
         )
-        increase_foods.extend(
-            ["lean red meat", "eggs", "fish", "lentils", "beans", "leafy greens", "citrus fruits"]
-        )
-        limit_foods.extend(
-            ["tea or coffee immediately with iron-rich meals", "very restrictive diets"]
-        )
+        if row.get("Ferritin_Risk_Level") == "Low Ferritin Indicator":
+            increase_foods.extend(["lentils", "beans", "lean meat", "vitamin C foods"])
+            limit_foods.append("tea or coffee immediately with iron-containing meals")
+        elif row.get("Ferritin_Risk_Level") == "High Ferritin Indicator":
+            recommendations.append(
+                "High ferritin can occur for several reasons, including inflammation; do not increase iron intake or use iron supplements unless a clinician advises it."
+            )
+        if row.get("B12_Risk_Level") in {
+            "Low Vitamin B12 Indicator",
+            "Borderline Vitamin B12 Indicator",
+        }:
+            increase_foods.extend(["eggs", "fish", "dairy or fortified alternatives"])
+        if row.get("Folate_Risk_Level") == "Low Folate Indicator":
+            increase_foods.extend(["leafy greens", "beans", "lentils", "citrus fruits"])
+        limit_foods.append("very restrictive diets")
 
     add_food_guide_to_recommendations(
         row,
@@ -917,6 +951,9 @@ def generate_recommendations(row):
         limit_foods.extend(["excess sugar", "processed foods", "trans fats"])
 
     recommendations = list(dict.fromkeys(recommendations))
+    recommendations.append(
+        "These are general food-choice suggestions, not medical advice. BioDietix is not a medical device and does not diagnose, treat, cure, or prevent any condition; discuss abnormal results and major diet changes with a qualified healthcare professional."
+    )
     increase_foods = list(dict.fromkeys(increase_foods))
     limit_foods = list(dict.fromkeys(limit_foods))
 
@@ -965,6 +1002,24 @@ test_patterns = {
     "Free_T4_ng_dL": r"(?im)^\s*(?:Serbest T4|Free T4|FT4)\s+([<>]?\s*\d+(?:[.,]\d+)?)",
 }
 
+# The standardized field names encode their expected units. Values carrying a
+# different unit must not be silently interpreted on the wrong scale.
+incompatible_unit_patterns = {
+    "Glucose_mgdL": r"\bmmol\s*/?\s*l\b",
+    "Cholesterol_Total_mgdL": r"\bmmol\s*/?\s*l\b",
+    "Cholesterol_LDL_mgdL": r"\bmmol\s*/?\s*l\b",
+    "Cholesterol_HDL_mgdL": r"\bmmol\s*/?\s*l\b",
+    "Triglycerides_mgdL": r"\bmmol\s*/?\s*l\b",
+    "Kidney_Creatinine_mgdL": r"(?:µ|μ|u)mol\s*/?\s*l\b",
+    "VitaminD_ng_mL": r"\bnmol\s*/?\s*l\b",
+    "Vitamin_B12_pg_mL": r"\bpmol\s*/?\s*l\b",
+    "Folate_ng_mL": r"\bnmol\s*/?\s*l\b",
+    "Iron_ugdL": r"(?:µ|μ|u)mol\s*/?\s*l\b",
+    "Calcium_mg_dL": r"\bmmol\s*/?\s*l\b",
+    "Magnesium_mg_dL": r"\bmmol\s*/?\s*l\b",
+    "Urea_mgdL": r"\bmmol\s*/?\s*l\b",
+}
+
 
 def extract_patient_metadata(text):
     metadata = {}
@@ -997,7 +1052,19 @@ def extract_lab_values(text):
     for standard_name, pattern in test_patterns.items():
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            results[standard_name] = clean_value(match.group(1))
+            line_end = text.find("\n", match.end())
+            if line_end == -1:
+                line_end = len(text)
+            matched_line = text[match.start() : line_end]
+            incompatible_pattern = incompatible_unit_patterns.get(standard_name)
+            if incompatible_pattern and re.search(
+                incompatible_pattern,
+                matched_line,
+                re.IGNORECASE,
+            ):
+                results[standard_name] = np.nan
+            else:
+                results[standard_name] = clean_value(match.group(1))
         else:
             results[standard_name] = np.nan
 

@@ -430,8 +430,10 @@ const _values = {
     'positiveSignals': 'Positive signals',
     'betterAlternatives': 'Better alternatives',
     'educationalOnly':
-        'Educational guidance only. This is not medical diagnosis.',
-    'decisionRecommended': 'Recommended',
+        'Supportive information only. BioDietix is not a medical device and does not diagnose, treat, cure, or prevent any condition. Consult a qualified healthcare professional.',
+    'medicalDisclaimer':
+        'BioDietix is not a medical device and does not diagnose, treat, cure, or prevent any medical condition. Results are supportive information only; consult a qualified healthcare professional.',
+    'decisionRecommended': 'Appears suitable',
     'decisionCaution': 'Use with caution',
     'decisionNotRecommended': 'Not recommended',
     'dataQuality': 'Product data',
@@ -519,6 +521,8 @@ const _values = {
     'apiConnected': 'Connection ready',
     'apiConnectionFailed': 'Connection check failed',
     'account': 'Account',
+    'privacyPolicy': 'Privacy policy',
+    'privacyPolicyUnavailable': 'The privacy policy could not be opened.',
     'signedInAs': 'Signed in as',
   },
   AppLanguage.tr: {
@@ -793,8 +797,11 @@ const _values = {
     'reasons': 'Nedenler',
     'positiveSignals': 'Olumlu sinyaller',
     'betterAlternatives': 'Daha iyi alternatifler',
-    'educationalOnly': 'Sadece eğitim amaçlıdır. Tıbbi teşhis değildir.',
-    'decisionRecommended': 'Önerilir',
+    'educationalOnly':
+        'Yalnızca destekleyici bilgidir. BioDietix tıbbi cihaz değildir; herhangi bir durumu teşhis, tedavi veya önleme amacı taşımaz. Yetkili bir sağlık profesyoneline danışın.',
+    'medicalDisclaimer':
+        'BioDietix tıbbi cihaz değildir; herhangi bir sağlık durumunu teşhis, tedavi veya önleme amacı taşımaz. Sonuçlar yalnızca destekleyici bilgidir. Yetkili bir sağlık profesyoneline danışın.',
+    'decisionRecommended': 'Mevcut veriye göre uygun görünüyor',
     'decisionCaution': 'Dikkatli tüket',
     'decisionNotRecommended': 'Önerilmez',
     'dataQuality': 'Ürün verisi',
@@ -882,6 +889,8 @@ const _values = {
     'apiConnected': 'Bağlantı hazır',
     'apiConnectionFailed': 'Bağlantı kontrolü başarısız',
     'account': 'Hesap',
+    'privacyPolicy': 'Gizlilik politikası',
+    'privacyPolicyUnavailable': 'Gizlilik politikası açılamadı.',
     'signedInAs': 'Giriş yapılan hesap',
   },
 };

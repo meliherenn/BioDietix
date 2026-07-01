@@ -8,6 +8,7 @@ logic for stored user profile data, allergy information, and scanned products.
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 import time
@@ -187,6 +188,22 @@ def _normalized(value):
     return " ".join(_clean_text(value).casefold().split())
 
 
+def _contains_keyword(text, keyword):
+    """Match an allergen term as a phrase, not as part of another word."""
+
+    normalized_text = _normalized(text)
+    normalized_keyword = _normalized(keyword)
+    if not normalized_text or not normalized_keyword:
+        return False
+    return bool(
+        re.search(
+            rf"(?<!\w){re.escape(normalized_keyword)}(?!\w)",
+            normalized_text,
+            flags=re.UNICODE,
+        )
+    )
+
+
 def _split_values(value):
     if isinstance(value, (list, tuple, set)):
         raw_values = value
@@ -264,7 +281,7 @@ def normalize_allergy_name(value):
         return ALLERGY_SYNONYMS[text]
 
     for keyword, canonical in ALLERGY_SYNONYMS.items():
-        if keyword and keyword in text:
+        if _contains_keyword(text, keyword):
             return canonical
 
     # Preserve unsupported user-entered allergens instead of silently dropping them.
@@ -369,6 +386,22 @@ def build_profile_memory(results, allergies=None, extracted_values=None):
         if safe_value not in (None, ""):
             lab_values[key] = safe_value
 
+    interpretation_warnings = [
+        "Reference intervals vary by laboratory, method, age, sex, pregnancy status, and clinical context."
+    ]
+    if "Glucose_mgdL" in lab_values:
+        interpretation_warnings.append(
+            "The glucose threshold assumes a fasting sample; fasting status cannot be reliably inferred from every PDF."
+        )
+    if "HbA1c_Percent" in lab_values:
+        interpretation_warnings.append(
+            "HbA1c can be affected by anemia, kidney or liver disease, blood disorders, pregnancy, blood loss, or transfusion."
+        )
+    if "eGFR_ml_min_1_73m2" in lab_values:
+        interpretation_warnings.append(
+            "A single eGFR below 60 does not establish chronic kidney disease; persistence and urine markers matter."
+        )
+
     profile_memory = {
         "schema_version": 1,
         "updated_at": datetime.now(UTC).isoformat(),
@@ -383,6 +416,7 @@ def build_profile_memory(results, allergies=None, extracted_values=None):
             "status": _json_safe(row.get("Data_Quality_Status")),
             "observed_lab_count": _json_safe(row.get("Observed_Lab_Count")),
             "observed_lab_domains": _json_safe(row.get("Observed_Lab_Domains")),
+            "interpretation_warnings": interpretation_warnings,
         },
         "lab_values": lab_values,
         "allergies": normalize_allergies(allergies or []),
@@ -487,7 +521,12 @@ def lookup_open_food_facts_product(barcode, timeout=8):
     for url in urls:
         request = urllib.request.Request(
             url,
-            headers={"User-Agent": "BioDietixML/1.0 (student nutrition project)"},
+            headers={
+                "User-Agent": os.getenv(
+                    "BIODIETIX_OPEN_FOOD_FACTS_USER_AGENT",
+                    "BioDietix/1.0 (+https://github.com/meliherenn/BioDietix)",
+                )
+            },
         )
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -533,19 +572,93 @@ def _combined_product_text(product):
     )
 
 
-def _find_allergy_conflicts(product, allergies):
-    product_text = _combined_product_text(product)
-    conflicts = []
+def _allergen_negated(text, keyword):
+    normalized_text = _normalized(text).replace("-", " ")
+    normalized_keyword = _normalized(keyword)
+    negative_phrases = (
+        f"{normalized_keyword} free",
+        f"free from {normalized_keyword}",
+        f"without {normalized_keyword}",
+        f"{normalized_keyword} içermez",
+        f"{normalized_keyword} icermez",
+    )
+    return any(phrase in normalized_text for phrase in negative_phrases)
+
+
+def _find_allergy_matches(product, allergies):
+    declared_text = _clean_text(product.get("allergens_text"))
+    ingredients_text = _clean_text(product.get("ingredients_text"))
+    identity_text = " ".join(
+        _clean_text(product.get(key)) for key in ("name", "category", "labels")
+    )
+    matches = []
     for allergy in normalize_allergies(allergies):
         keywords = ALLERGEN_KEYWORDS.get(allergy, (allergy,))
-        if any(keyword in product_text for keyword in keywords):
-            conflicts.append(allergy)
-    return conflicts
+        declared_match = next(
+            (
+                keyword
+                for keyword in keywords
+                if _contains_keyword(declared_text, keyword)
+                and not _allergen_negated(declared_text, keyword)
+            ),
+            None,
+        )
+        ingredient_match = next(
+            (
+                keyword
+                for keyword in keywords
+                if _contains_keyword(ingredients_text, keyword)
+                and not _allergen_negated(ingredients_text, keyword)
+            ),
+            None,
+        )
+        identity_match = next(
+            (
+                keyword
+                for keyword in keywords
+                if _contains_keyword(identity_text, keyword)
+                and not _allergen_negated(identity_text, keyword)
+            ),
+            None,
+        )
+        if declared_match:
+            matches.append(
+                {
+                    "allergen": allergy,
+                    "certainty": "declared",
+                    "source": "allergens_text",
+                    "matched_term": declared_match,
+                }
+            )
+        elif ingredient_match:
+            matches.append(
+                {
+                    "allergen": allergy,
+                    "certainty": "ingredient_match",
+                    "source": "ingredients_text",
+                    "matched_term": ingredient_match,
+                }
+            )
+        elif identity_match:
+            matches.append(
+                {
+                    "allergen": allergy,
+                    "certainty": "possible",
+                    "source": "product_identity",
+                    "matched_term": identity_match,
+                }
+            )
+    return matches
 
 
 def _profile_contains(profile_memory, *keywords):
     profile_text = _clean_text(profile_memory.get("health_profile")).casefold()
     return any(keyword.casefold() in profile_text for keyword in keywords)
+
+
+def _risk_level_contains(profile_memory, key, *keywords):
+    value = _clean_text((profile_memory.get("risk_levels") or {}).get(key)).casefold()
+    return any(keyword.casefold() in value for keyword in keywords)
 
 
 def _has_limited_food(profile_memory, *keywords):
@@ -613,17 +726,38 @@ def evaluate_product_for_profile(product, profile_memory):
 
     normalized_product = {**PRODUCT_FIELD_DEFAULTS, **(product or {})}
     allergies = normalize_allergies(profile_memory.get("allergies", []))
-    conflicts = _find_allergy_conflicts(normalized_product, allergies)
+    allergen_matches = _find_allergy_matches(normalized_product, allergies)
+    conflicts = [match["allergen"] for match in allergen_matches]
+    confirmed_conflicts = [
+        match for match in allergen_matches if match["certainty"] != "possible"
+    ]
 
     reasons = []
     positives = []
     alternatives = []
+    matched_risks = []
+    nutrition_flags = []
+    missing_data_warnings = []
     severity = 0
 
-    if conflicts:
-        reasons.append({"code": "allergy_conflict", "allergens": conflicts})
+    if confirmed_conflicts:
+        reasons.append(
+            {
+                "code": "allergy_conflict",
+                "allergens": [match["allergen"] for match in confirmed_conflicts],
+            }
+        )
         _add_unique(alternatives, {"code": "allergy_safe_same_category"})
         severity = max(severity, 3)
+    possible_conflicts = [
+        match["allergen"] for match in allergen_matches if match["certainty"] == "possible"
+    ]
+    if possible_conflicts:
+        reasons.append(
+            {"code": "possible_allergy_conflict", "allergens": possible_conflicts}
+        )
+        _add_unique(alternatives, {"code": "allergy_safe_same_category"})
+        severity = max(severity, 2)
 
     sugar = _to_number(normalized_product.get("sugar_g_100g"))
     saturated_fat = _to_number(normalized_product.get("saturated_fat_g_100g"))
@@ -671,12 +805,23 @@ def evaluate_product_for_profile(product, profile_memory):
         "Lipid",
         "Cholesterol",
     )
-    bp_or_kidney_sensitive = _profile_contains(
+    blood_pressure_sensitive = _risk_level_contains(
         profile_memory,
-        "Blood Pressure",
-        "Kidney",
-        "Muscle",
+        "BP_Risk_Level",
+        "elevated",
+        "stage 1",
+        "stage 2",
+    ) or _profile_contains(profile_memory, "Blood Pressure")
+    kidney_sensitive = _risk_level_contains(
+        profile_memory,
+        "eGFR_Risk_Level",
+        "reduced",
+    ) or _risk_level_contains(
+        profile_memory,
+        "Creatinine_Risk_Level",
+        "high",
     )
+    bp_or_kidney_sensitive = blood_pressure_sensitive or kidney_sensitive
     weight_sensitive = (
         bmi >= 25
         if bmi is not None
@@ -693,11 +838,20 @@ def evaluate_product_for_profile(product, profile_memory):
 
     if measured_nutrient_count == 0:
         reasons.append({"code": "nutrition_data_missing"})
+        missing_data_warnings.append("nutrition_values_missing")
         _add_unique(alternatives, {"code": "fresh_whole_food"})
         severity = max(severity, 1)
 
+    if not data_quality["has_ingredient_text"]:
+        missing_data_warnings.append("ingredients_missing")
+    if not _clean_text(normalized_product.get("allergens_text")):
+        missing_data_warnings.append("allergen_declaration_missing")
+    if data_quality["level"] in {"low", "missing"}:
+        missing_data_warnings.append("product_data_incomplete")
+
     if sugar is not None:
         if sugar >= 35:
+            nutrition_flags.append({"code": "very_high_sugar", "value": sugar})
             severity, risk_points = _record_signal(
                 reasons,
                 alternatives,
@@ -708,6 +862,7 @@ def evaluate_product_for_profile(product, profile_memory):
                 3,
             )
         elif sugar >= 22.5:
+            nutrition_flags.append({"code": "high_sugar", "value": sugar})
             severity, risk_points = _record_signal(
                 reasons,
                 alternatives,
@@ -718,6 +873,7 @@ def evaluate_product_for_profile(product, profile_memory):
                 2,
             )
         elif sugar >= 10:
+            nutrition_flags.append({"code": "moderate_sugar", "value": sugar})
             severity, risk_points = _record_signal(
                 reasons,
                 alternatives,
@@ -730,6 +886,9 @@ def evaluate_product_for_profile(product, profile_memory):
 
     if saturated_fat is not None:
         if saturated_fat >= 15:
+            nutrition_flags.append(
+                {"code": "very_high_saturated_fat", "value": saturated_fat}
+            )
             severity, risk_points = _record_signal(
                 reasons,
                 alternatives,
@@ -740,6 +899,9 @@ def evaluate_product_for_profile(product, profile_memory):
                 3,
             )
         elif saturated_fat >= 5:
+            nutrition_flags.append(
+                {"code": "high_saturated_fat", "value": saturated_fat}
+            )
             severity, risk_points = _record_signal(
                 reasons,
                 alternatives,
@@ -753,6 +915,9 @@ def evaluate_product_for_profile(product, profile_memory):
     high_sodium = (salt is not None and salt >= 1.5) or (sodium is not None and sodium >= 600)
     moderate_sodium = (salt is not None and salt >= 0.75) or (sodium is not None and sodium >= 300)
     if high_sodium:
+        nutrition_flags.append(
+            {"code": "high_salt_or_sodium", "salt": salt, "sodium": sodium}
+        )
         severity, risk_points = _record_signal(
             reasons,
             alternatives,
@@ -763,6 +928,9 @@ def evaluate_product_for_profile(product, profile_memory):
             2,
         )
     elif moderate_sodium:
+        nutrition_flags.append(
+            {"code": "moderate_salt_or_sodium", "salt": salt, "sodium": sodium}
+        )
         severity, risk_points = _record_signal(
             reasons,
             alternatives,
@@ -775,6 +943,7 @@ def evaluate_product_for_profile(product, profile_memory):
 
     if energy is not None:
         if energy >= 550:
+            nutrition_flags.append({"code": "very_high_energy", "value": energy})
             severity, risk_points = _record_signal(
                 reasons,
                 alternatives,
@@ -785,6 +954,7 @@ def evaluate_product_for_profile(product, profile_memory):
                 2,
             )
         elif energy >= 400:
+            nutrition_flags.append({"code": "high_energy", "value": energy})
             severity, risk_points = _record_signal(
                 reasons,
                 alternatives,
@@ -796,6 +966,7 @@ def evaluate_product_for_profile(product, profile_memory):
             )
 
     if nova_group is not None and nova_group >= 4:
+        nutrition_flags.append({"code": "ultra_processed", "value": nova_group})
         severity, risk_points = _record_signal(
             reasons,
             alternatives,
@@ -807,6 +978,9 @@ def evaluate_product_for_profile(product, profile_memory):
         )
 
     if nutrition_grade in {"d", "e"}:
+        nutrition_flags.append(
+            {"code": "lower_nutrition_grade", "value": nutrition_grade.upper()}
+        )
         severity, risk_points = _record_signal(
             reasons,
             alternatives,
@@ -820,6 +994,7 @@ def evaluate_product_for_profile(product, profile_memory):
     if fiber is not None and fiber < 3 and (
         (sugar is not None and sugar >= 10) or (energy is not None and energy >= 400)
     ):
+        nutrition_flags.append({"code": "low_fiber", "value": fiber})
         severity, risk_points = _record_signal(
             reasons,
             alternatives,
@@ -832,20 +1007,24 @@ def evaluate_product_for_profile(product, profile_memory):
 
     if blood_sugar_sensitive and sugar is not None:
         if sugar >= 22.5:
+            _add_unique(matched_risks, "blood_sugar")
             reasons.append({"code": "high_sugar_blood_sugar", "value": sugar})
             _add_unique(alternatives, {"code": "low_sugar_snack"})
             severity = max(severity, 3)
         elif sugar >= 10:
+            _add_unique(matched_risks, "blood_sugar")
             reasons.append({"code": "moderate_sugar_blood_sugar", "value": sugar})
             _add_unique(alternatives, {"code": "low_sugar_snack"})
             severity = max(severity, 2)
 
     if lipid_sensitive and saturated_fat is not None:
         if saturated_fat >= 10:
+            _add_unique(matched_risks, "cardiovascular_lipids")
             reasons.append({"code": "very_high_saturated_fat_lipid", "value": saturated_fat})
             _add_unique(alternatives, {"code": "unsaturated_fat_option"})
             severity = max(severity, 3)
         elif saturated_fat >= 5:
+            _add_unique(matched_risks, "cardiovascular_lipids")
             reasons.append({"code": "high_saturated_fat_lipid", "value": saturated_fat})
             _add_unique(alternatives, {"code": "unsaturated_fat_option"})
             severity = max(severity, 2)
@@ -853,15 +1032,24 @@ def evaluate_product_for_profile(product, profile_memory):
     high_sodium = (salt is not None and salt >= 1.5) or (sodium is not None and sodium >= 600)
     moderate_sodium = (salt is not None and salt >= 0.75) or (sodium is not None and sodium >= 300)
     if bp_or_kidney_sensitive and high_sodium:
+        if blood_pressure_sensitive:
+            _add_unique(matched_risks, "blood_pressure")
+        if kidney_sensitive:
+            _add_unique(matched_risks, "kidney_marker")
         reasons.append({"code": "high_salt_bp_kidney", "salt": salt, "sodium": sodium})
         _add_unique(alternatives, {"code": "unsalted_option"})
         severity = max(severity, 3)
     elif bp_or_kidney_sensitive and moderate_sodium:
+        if blood_pressure_sensitive:
+            _add_unique(matched_risks, "blood_pressure")
+        if kidney_sensitive:
+            _add_unique(matched_risks, "kidney_marker")
         reasons.append({"code": "moderate_salt_bp_kidney", "salt": salt, "sodium": sodium})
         _add_unique(alternatives, {"code": "unsalted_option"})
         severity = max(severity, 2)
 
     if weight_sensitive and energy is not None and energy >= 400:
+        _add_unique(matched_risks, "weight_range")
         reasons.append({"code": "high_energy_weight", "value": energy})
         _add_unique(alternatives, {"code": "high_fiber_option"})
         severity = max(severity, 2)
@@ -878,16 +1066,22 @@ def evaluate_product_for_profile(product, profile_memory):
         "koruyucu",
     )
     if (diet_quality_sensitive or thyroid_sensitive) and any(term in product_text for term in ultra_processed_terms):
+        if diet_quality_sensitive:
+            _add_unique(matched_risks, "diet_quality")
+        if thyroid_sensitive:
+            _add_unique(matched_risks, "thyroid_marker")
         reasons.append({"code": "ultra_processed_diet"})
         _add_unique(alternatives, {"code": "fresh_whole_food"})
         severity = max(severity, 2)
 
     if diet_quality_sensitive and fiber is not None and fiber < 3:
+        _add_unique(matched_risks, "diet_quality")
         reasons.append({"code": "low_fiber_diet", "value": fiber})
         _add_unique(alternatives, {"code": "high_fiber_option"})
         severity = max(severity, 1)
 
-    if bp_or_kidney_sensitive and protein is not None and protein >= 25:
+    if kidney_sensitive and protein is not None and protein >= 25:
+        _add_unique(matched_risks, "kidney_marker")
         reasons.append({"code": "high_protein_kidney", "value": protein})
         _add_unique(alternatives, {"code": "balanced_protein_option"})
         severity = max(severity, 2)
@@ -904,7 +1098,9 @@ def evaluate_product_for_profile(product, profile_memory):
     if reasons and not alternatives:
         _add_unique(alternatives, {"code": "fresh_whole_food"})
 
-    if severity >= 3 or risk_points >= 5:
+    if confirmed_conflicts:
+        decision = "not_recommended"
+    elif severity >= 3 or risk_points >= 5:
         decision = "not_recommended"
     elif severity >= 1 or risk_points >= 2:
         decision = "use_with_caution"
@@ -914,16 +1110,36 @@ def evaluate_product_for_profile(product, profile_memory):
     if (
         decision == "not_recommended"
         and measured_nutrient_count == 0
-        and not conflicts
+        and not allergen_matches
     ):
         decision = "use_with_caution"
 
+    decision_label = {
+        "recommended": "Appears suitable based on the available data",
+        "use_with_caution": "Use with caution; review the available label data",
+        "not_recommended": "Not recommended based on the detected signals",
+    }[decision]
+
     return {
         "decision": decision,
+        "decision_label": decision_label,
         "allergy_conflicts": conflicts,
+        "matched_allergens": allergen_matches,
+        "matched_risks": matched_risks,
+        "nutrition_flags": nutrition_flags,
+        "missing_data_warnings": missing_data_warnings,
         "reasons": reasons,
         "positives": positives,
         "alternatives": alternatives,
         "data_quality": data_quality,
-        "medical_note": "This is educational guidance, not a medical diagnosis.",
+        "disclaimer": (
+            "Supportive information only. BioDietix is not a medical device and does not "
+            "diagnose, treat, cure, or prevent any medical condition. Consult a qualified "
+            "healthcare professional."
+        ),
+        "medical_note": (
+            "Supportive information only. BioDietix is not a medical device and does not "
+            "diagnose, treat, cure, or prevent any medical condition. Consult a qualified "
+            "healthcare professional."
+        ),
     }

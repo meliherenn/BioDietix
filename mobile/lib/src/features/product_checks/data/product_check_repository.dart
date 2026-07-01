@@ -102,7 +102,7 @@ class ProductCheckRepository {
       productName: data['productName']?.toString() ?? '',
       brand: data['brand']?.toString() ?? '',
       barcode: data['barcode']?.toString() ?? '',
-      decision: data['decision']?.toString() ?? 'recommended',
+      decision: _decisionOrCaution(data['decision']),
       dataQualityLevel: data['dataQualityLevel']?.toString() ?? 'medium',
       note: data['note']?.toString() ?? '',
       createdAt: _date(data['createdAt']),
@@ -128,5 +128,16 @@ class ProductCheckRepository {
     if (value is DateTime) return value;
     if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
     return DateTime.now();
+  }
+
+  String _decisionOrCaution(dynamic value) {
+    final decision = value?.toString();
+    return const {
+          'recommended',
+          'use_with_caution',
+          'not_recommended',
+        }.contains(decision)
+        ? decision!
+        : 'use_with_caution';
   }
 }

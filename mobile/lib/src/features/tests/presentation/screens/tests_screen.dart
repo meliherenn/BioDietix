@@ -199,6 +199,11 @@ class _TestsScreenState extends State<TestsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  NoticeBox(
+                    message: strings.t('medicalDisclaimer'),
+                    icon: Icons.health_and_safety_outlined,
+                    warning: true,
+                  ),
                   if (saving)
                     const Padding(
                       padding: EdgeInsets.only(bottom: 14),

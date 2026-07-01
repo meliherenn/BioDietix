@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/widgets/ui.dart';
@@ -59,6 +60,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _openPrivacyPolicy() async {
+    final strings = AppScope.of(context).strings;
+    final uri = Uri.tryParse(widget.config.privacyPolicyUrl);
+    if (uri == null || uri.scheme != 'https') {
+      showAppSnack(context, strings.t('privacyPolicyUnavailable'));
+      return;
+    }
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      showAppSnack(context, strings.t('privacyPolicyUnavailable'));
     }
   }
 
@@ -427,6 +441,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: strings.t('account'),
             child: Column(
               children: [
+                NoticeBox(
+                  message: strings.t('medicalDisclaimer'),
+                  icon: Icons.health_and_safety_outlined,
+                  warning: true,
+                ),
+                AppButton(
+                  label: strings.t('privacyPolicy'),
+                  icon: Icons.privacy_tip_outlined,
+                  onPressed: _openPrivacyPolicy,
+                  secondary: true,
+                ),
+                const SizedBox(height: 10),
                 AppButton(
                   label: strings.t('exportData'),
                   icon: Icons.download_rounded,

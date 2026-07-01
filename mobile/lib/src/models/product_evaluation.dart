@@ -23,7 +23,7 @@ class ProductEvaluation {
 
   factory ProductEvaluation.fromJson(Map<String, dynamic> json) {
     return ProductEvaluation(
-      decision: json['decision']?.toString() ?? 'recommended',
+      decision: _decision(json['decision']),
       reasons: _mapList(json['reasons']),
       positives: _mapList(json['positives']),
       alternatives: _mapList(json['alternatives']),
@@ -44,5 +44,16 @@ class ProductEvaluation {
           (item) => item.map((key, value) => MapEntry(key.toString(), value)),
         )
         .toList();
+  }
+
+  static String _decision(dynamic value) {
+    final decision = value?.toString();
+    return const {
+          'recommended',
+          'use_with_caution',
+          'not_recommended',
+        }.contains(decision)
+        ? decision!
+        : 'use_with_caution';
   }
 }

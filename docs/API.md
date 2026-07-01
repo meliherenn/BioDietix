@@ -14,12 +14,16 @@ local development with `BIODIETIX_AUTH_REQUIRED=false`.
 | GET | `/health` | public | Liveness and deployment metadata |
 | POST | `/v1/analyze/blood-pdf` | 10/user/min | Parse a blood report and build profile memory |
 | POST | `/v1/analyze/allergy-pdf` | 10/user/min | Extract positive allergy signals |
-| GET | `/v1/product/lookup/{barcode}` | 60/user/min | Query and normalize product data |
+| GET | `/v1/product/lookup/{barcode}` | 10/user/min | Query and normalize product data |
 | POST | `/v1/product/evaluate` | 120/user/min | Evaluate a typed product/profile payload |
 
 PDF uploads are limited to 10 MiB by default. Files must have a `.pdf`
 extension, an accepted content type and a PDF header. Configure limits with the
 environment variables listed in `.env.example`.
+
+PDF processing also defaults to 50 pages and 200,000 extracted characters.
+Values with inequality-only notation or an incompatible unit are omitted rather
+than treated as exact values on the wrong scale.
 
 ## Response behavior
 
@@ -34,6 +38,12 @@ environment variables listed in `.env.example`.
 
 Every response includes `X-Request-ID`. Internal exception messages and stack
 traces are logged server-side and are not returned to clients.
+
+Product evaluations return `decision`, `decision_label`, `reasons`,
+`matched_risks`, `matched_allergens` (including certainty/source),
+`nutrition_flags`, `missing_data_warnings`, `data_quality`, alternatives and a
+not-medical-device disclaimer. `recommended` means only “appears suitable based
+on available data”; it is never an absolute safety statement.
 
 ## Data sufficiency
 

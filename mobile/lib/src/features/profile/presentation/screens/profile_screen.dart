@@ -338,6 +338,12 @@ class _DietCompassCard extends StatelessWidget {
                     memory.nutritionRecommendation,
                   ),
                 ),
+                const SizedBox(height: 10),
+                NoticeBox(
+                  message: strings.t('medicalDisclaimer'),
+                  icon: Icons.health_and_safety_outlined,
+                  warning: true,
+                ),
               ],
               if (hasSignals) ...[
                 const SizedBox(height: 14),

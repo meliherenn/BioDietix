@@ -1,11 +1,11 @@
 Category,Condition_Risk,Foods_To_Limit,Foods_To_Increase,Purpose
-Carbohydrates,High HbA1c / High Glucose,"white bread, pastries, white rice, sugary cereals","whole wheat bread, oats, bulgur, brown rice, quinoa",Improve glycemic control
-Sugar,High daily sugar intake,"soft drinks, desserts, packaged snacks","fresh fruits, cinnamon",Reduce blood sugar spikes
-Fiber,Low fiber intake,"refined grains, processed foods","vegetables, legumes, chia seeds, flaxseed",Improve digestion and lower LDL
-Protein,Insulin resistance,"processed meat, excessive red meat","fish, chicken breast, legumes",Improve insulin sensitivity
-Fat,High LDL / Triglycerides,"butter, margarine, fried foods","olive oil, avocado, nuts",Improve lipid profile
-Cholesterol,High LDL cholesterol,"high-fat dairy, fatty red meat","low-fat dairy, fish",Reduce cardiovascular risk
-Liver Health,Elevated ALT / AST,"alcohol, fried foods, sugary foods","vegetables, lean protein, olive oil",Support liver function
-Blood Pressure,Hypertension,"processed foods, salty snacks, pickles","herbs, garlic, lemon, potassium-rich foods",Reduce blood pressure
-Weight Control,Obesity,high-calorie fast food,"vegetables, lean protein",Promote weight loss
-Metabolic Health,Metabolic syndrome,"sugary drinks, refined carbs",Mediterranean diet foods,Improve overall metabolic health
+Carbohydrates,Higher HbA1c / glucose indicator,"white bread, pastries, white rice, sugary cereals","whole wheat bread, oats, bulgur, brown rice, quinoa",Support lower-glycemic food choices
+Sugar,Higher recorded daily sugar intake,"soft drinks, desserts, packaged snacks",fresh fruits,Support lower-added-sugar choices
+Fiber,Low fiber intake,"refined grains, processed foods","vegetables, legumes, chia seeds, flaxseed",Support adequate fiber intake
+Protein,Blood sugar indicator,"processed meat, excessive red meat","fish, chicken breast, legumes",Support balanced meals
+Fat,High LDL / Triglycerides,"butter, margarine, fried foods","olive oil, avocado, nuts",Support heart-healthy fat choices
+Cholesterol,High LDL cholesterol,"high-fat dairy, fatty red meat","low-fat dairy, fish",Support lower-saturated-fat choices
+Liver Health,Elevated ALT / AST,"alcohol, fried foods, sugary foods","vegetables, lean protein, olive oil",Support a general liver-conscious eating pattern
+Blood Pressure,Hypertension,"processed foods, salty snacks, pickles","herbs, lemon",Support lower-sodium choices
+Weight Control,High BMI range,high-calorie fast food,"vegetables, lean protein",Support nutrient-dense food choices
+Metabolic Health,Multiple metabolic indicators,"sugary drinks, refined carbs",Mediterranean-style foods,Support a balanced Mediterranean-style pattern

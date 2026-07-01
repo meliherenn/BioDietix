@@ -68,7 +68,7 @@ class ProductCheck {
       productName: json['productName']?.toString() ?? '',
       brand: json['brand']?.toString() ?? '',
       barcode: json['barcode']?.toString() ?? '',
-      decision: json['decision']?.toString() ?? 'recommended',
+      decision: _decisionOrCaution(json['decision']),
       dataQualityLevel: json['dataQualityLevel']?.toString() ?? 'medium',
       note: json['note']?.toString() ?? '',
       createdAt: _date(json['createdAt']),
@@ -103,4 +103,15 @@ class ProductCheck {
     if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
     return DateTime.now();
   }
+}
+
+String _decisionOrCaution(dynamic value) {
+  final decision = value?.toString();
+  return const {
+        'recommended',
+        'use_with_caution',
+        'not_recommended',
+      }.contains(decision)
+      ? decision!
+      : 'use_with_caution';
 }

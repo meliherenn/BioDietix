@@ -16,6 +16,8 @@ services:
         value: "true"
       - key: BIODIETIX_EXPOSE_DOCS
         value: "false"
+      - key: BIODIETIX_ALLOWED_HOSTS
+        value: "biodietix-api.onrender.com,biodietix-ml.onrender.com,localhost,127.0.0.1"
       - key: BIODIETIX_MAX_PDF_BYTES
         value: "10485760"
       - key: BIODIETIX_MAX_JSON_BYTES

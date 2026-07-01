@@ -61,7 +61,7 @@ if SETTINGS.allowed_hosts:
 
 
 class ProductPayload(BaseModel):
-    model_config = ConfigDict(extra="ignore", allow_inf_nan=False)
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     barcode: ShortText = ""
     name: ShortText = ""
@@ -84,7 +84,7 @@ class ProductPayload(BaseModel):
 
 
 class ProfileMemoryPayload(BaseModel):
-    model_config = ConfigDict(extra="ignore", allow_inf_nan=False)
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     schema_version: int = Field(default=1, ge=1, le=10)
     updated_at: ShortText = ""
@@ -148,7 +148,7 @@ async def save_pdf_upload_to_temp(upload_file: UploadFile, settings: APISettings
                 temporary_file.write(chunk)
         if total == 0:
             raise HTTPException(status_code=400, detail="Uploaded file is empty.")
-        if b"%PDF-" not in header:
+        if not bytes(header).lstrip().startswith(b"%PDF-"):
             raise HTTPException(status_code=415, detail="Uploaded file is not a valid PDF.")
         return temporary_path
     except Exception:
@@ -217,13 +217,18 @@ async def validation_exception_handler(_request: Request, exc: RequestValidation
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    LOGGER.exception("Unhandled API error path=%s", request.url.path)
+    LOGGER.error(
+        "unhandled_api_error path=%s error_type=%s",
+        request.url.path,
+        type(exc).__name__,
+        exc_info=SETTINGS.environment != "production",
+    )
     return JSONResponse(status_code=500, content={"detail": "Internal server error."})
 
 
 router = APIRouter(prefix="/v1")
 upload_limit = UserRateLimit(requests=10)
-lookup_limit = UserRateLimit(requests=60)
+lookup_limit = UserRateLimit(requests=10)
 evaluation_limit = UserRateLimit(requests=120)
 
 
@@ -277,7 +282,11 @@ async def analyze_blood_pdf(
     except HTTPException:
         raise
     except Exception as exc:
-        LOGGER.exception("Blood PDF analysis failed")
+        LOGGER.error(
+            "blood_pdf_analysis_failed error_type=%s",
+            type(exc).__name__,
+            exc_info=SETTINGS.environment != "production",
+        )
         raise HTTPException(status_code=500, detail="Blood PDF analysis failed.") from exc
     finally:
         pdf_path.unlink(missing_ok=True)
@@ -294,7 +303,11 @@ async def analyze_allergy_pdf(
         allergies, text = await run_in_threadpool(extract_allergies_from_pdf_file, pdf_path)
         return {"allergies": allergies, "text_preview": text[:4000]}
     except Exception as exc:
-        LOGGER.exception("Allergy PDF analysis failed")
+        LOGGER.error(
+            "allergy_pdf_analysis_failed error_type=%s",
+            type(exc).__name__,
+            exc_info=SETTINGS.environment != "production",
+        )
         raise HTTPException(status_code=422, detail="Allergy PDF analysis failed.") from exc
     finally:
         pdf_path.unlink(missing_ok=True)
@@ -308,7 +321,11 @@ async def lookup_product(
     try:
         product = await run_in_threadpool(lookup_open_food_facts_product, barcode)
     except Exception as exc:
-        LOGGER.exception("Product lookup failed")
+        LOGGER.error(
+            "product_lookup_failed error_type=%s",
+            type(exc).__name__,
+            exc_info=SETTINGS.environment != "production",
+        )
         raise HTTPException(status_code=502, detail="Product lookup service unavailable.") from exc
     if not product:
         raise HTTPException(
@@ -328,7 +345,11 @@ def evaluate_product(
             request.profile_memory.model_dump(),
         )
     except Exception as exc:
-        LOGGER.exception("Product evaluation failed")
+        LOGGER.error(
+            "product_evaluation_failed error_type=%s",
+            type(exc).__name__,
+            exc_info=SETTINGS.environment != "production",
+        )
         raise HTTPException(status_code=422, detail="Product evaluation failed.") from exc
 
 

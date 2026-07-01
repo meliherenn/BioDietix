@@ -70,6 +70,54 @@ class ProductEvaluationDecisionTests(unittest.TestCase):
         self.assertEqual(result["decision"], "not_recommended")
         self.assertIn("mustard", result["allergy_conflicts"])
 
+    def test_allergen_substring_does_not_match_coconut_as_tree_nut(self):
+        profile = {**self.profile, "allergies": ["tree_nut"]}
+        result = evaluate_product_for_profile(
+            {"name": "Coconut water", "ingredients_text": "coconut water"},
+            profile,
+        )
+        self.assertNotIn("tree_nut", result["allergy_conflicts"])
+
+    def test_free_from_label_does_not_create_confirmed_allergy_match(self):
+        result = evaluate_product_for_profile(
+            {"name": "Dessert", "allergens_text": "milk-free"},
+            self.profile,
+        )
+        self.assertNotIn("milk", result["allergy_conflicts"])
+
+    def test_possible_identity_allergen_is_caution_not_absolute_rejection(self):
+        result = evaluate_product_for_profile(
+            {"name": "Milk-style dessert", "ingredients_text": ""},
+            self.profile,
+        )
+        self.assertEqual(result["decision"], "use_with_caution")
+        self.assertEqual(result["matched_allergens"][0]["certainty"], "possible")
+
+    def test_low_creatinine_muscle_profile_does_not_trigger_kidney_protein_rule(self):
+        profile = {
+            "health_profile": "Kidney / Muscle Indicator",
+            "risk_levels": {"Creatinine_Risk_Level": "Low"},
+            "allergies": [],
+        }
+        result = evaluate_product_for_profile(
+            {"name": "Protein food", "protein_g_100g": 30},
+            profile,
+        )
+        self.assertNotIn(
+            "high_protein_kidney",
+            [reason["code"] for reason in result["reasons"]],
+        )
+
+    def test_explainability_fields_and_disclaimer_are_returned(self):
+        result = evaluate_product_for_profile(
+            {"name": "Sweet snack", "sugar_g_100g": 24},
+            self.profile,
+        )
+        self.assertIn("blood_sugar", result["matched_risks"])
+        self.assertIn("high_sugar", [flag["code"] for flag in result["nutrition_flags"]])
+        self.assertIn("ingredients_missing", result["missing_data_warnings"])
+        self.assertIn("not a medical device", result["disclaimer"])
+
 
 if __name__ == "__main__":
     unittest.main()

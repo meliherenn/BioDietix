@@ -18,13 +18,18 @@ Required production controls:
 - `BIODIETIX_APP_CHECK_REQUIRED=true`
 - `BIODIETIX_FIREBASE_CHECK_REVOKED=true`
 - `BIODIETIX_FIREBASE_CREDENTIALS_JSON` from a secret manager
-- explicit CORS/host values if browser clients are introduced
+- `BIODIETIX_ALLOWED_HOSTS` with every exact public/internal health-check host
+- explicit CORS origins only if browser clients are introduced
+- `BIODIETIX_MAX_PDF_PAGES` and `BIODIETIX_MAX_PDF_TEXT_CHARS`
 - one worker while using the in-process rate limiter
 
 Before a production mobile rollout, enable Play Integrity for the Android app
 in Firebase App Check. Register development debug tokens only in non-production
 Firebase projects. Verify that requests without `X-Firebase-AppCheck` receive
 `401` in production.
+
+Production startup fails if Auth or App Check is disabled, if trusted hosts are
+missing/wildcard, or if CORS contains a wildcard.
 
 Deploy Firestore and Storage rules before distributing a mobile build:
 
