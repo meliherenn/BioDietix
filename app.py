@@ -1,29 +1,29 @@
-import html
 import hmac
+import html
 import os
 import re
 
 import pandas as pd
 import streamlit as st
 
+from utils.biodietix_audit import (
+    MLAuditError,
+    build_data_audit,
+    run_ml_profile_audit,
+)
 from utils.biodietix_web import (
-    BioDietixDataError,
-    BioDietixPDFError,
     DEFAULT_DATA_PATH,
     DEFAULT_RECOMMENDATION_PATH,
     OUTPUT_COLUMNS,
     RISK_COLUMNS,
+    BioDietixDataError,
+    BioDietixPDFError,
     analyze_dataframe,
     analyze_pdf_file,
     available_columns,
     dataframe_to_csv_bytes,
     ensure_recommendation_columns,
     read_csv_data,
-)
-from utils.biodietix_audit import (
-    MLAuditError,
-    build_data_audit,
-    run_ml_profile_audit,
 )
 from utils.food_recommendation_guide import food_guide_dataframe
 from utils.mobile_health_core import (
@@ -92,10 +92,8 @@ TEXT = {
         "manual_allergies_help": "Separate multiple allergies with commas.",
         "allergy_pdf_file": "Allergy test PDF (optional)",
         "allergy_pdf_note": "Allergy data is used for product suitability checks.",
-        "health_upload_consent":
-            "I am authorized to process this report and consent to transient server-side analysis.",
-        "health_upload_consent_required":
-            "Consent is required before a health report can be processed.",
+        "health_upload_consent": "I am authorized to process this report and consent to transient server-side analysis.",
+        "health_upload_consent_required": "Consent is required before a health report can be processed.",
         "gender": "Gender",
         "age": "Age",
         "anthropometrics": "Body measurements",
@@ -239,10 +237,8 @@ TEXT = {
         "manual_allergies_help": "Birden fazla alerjiyi virgülle ayırın.",
         "allergy_pdf_file": "Alerji testi PDF'i (opsiyonel)",
         "allergy_pdf_note": "Alerji verisi ürün uygunluğu kontrolünde kullanılır.",
-        "health_upload_consent":
-            "Bu raporu işlemeye yetkiliyim ve sunucuda geçici olarak analiz edilmesini onaylıyorum.",
-        "health_upload_consent_required":
-            "Sağlık raporu işlenmeden önce onay gereklidir.",
+        "health_upload_consent": "Bu raporu işlemeye yetkiliyim ve sunucuda geçici olarak analiz edilmesini onaylıyorum.",
+        "health_upload_consent_required": "Sağlık raporu işlenmeden önce onay gereklidir.",
         "gender": "Cinsiyet",
         "age": "Yaş",
         "anthropometrics": "Vücut ölçüleri",
@@ -370,7 +366,7 @@ PROFILE_TRANSLATIONS = {
     "Platelet Support Indicator": "Trombosit Destek Göstergesi",
     "Liver Enzyme Indicator": "Karaciğer Enzimi Göstergesi",
     "Thyroid / Metabolism Indicator": "Tiroid / Metabolizma Göstergesi",
-    "Diet Quality Risk": "Beslenme Kalitesi Riski",
+    "Fiber Intake Signal": "Lif Alımı Sinyali",
     "Abdominal Obesity Risk": "Abdominal Obezite Riski",
     "Age-Related Nutrition Focus": "Yaşa Bağlı Beslenme Odağı",
     "Vitamin D / Bone Health Indicator": "D Vitamini / Kemik Sağlığı Göstergesi",
@@ -586,8 +582,7 @@ FOOD_TRANSLATIONS = {
 }
 
 FOOD_TRANSLATIONS_NORMALIZED = {
-    " ".join(english.casefold().split()): turkish
-    for english, turkish in FOOD_TRANSLATIONS.items()
+    " ".join(english.casefold().split()): turkish for english, turkish in FOOD_TRANSLATIONS.items()
 }
 
 GENERAL_VALUE_TRANSLATIONS = {
@@ -650,6 +645,10 @@ GENERAL_VALUE_TRANSLATIONS = {
     "Good Diet Quality": "İyi Beslenme Kalitesi",
     "Moderate Diet Quality Risk": "Orta Beslenme Kalitesi Riski",
     "Poor Diet Quality Risk": "Düşük Beslenme Kalitesi Riski",
+    "Low Fiber Intake Signal": "Düşük Lif Alımı Sinyali",
+    "Lower Fiber Intake Signal": "Daha Düşük Lif Alımı Sinyali",
+    "No Low-Fiber Intake Signal": "Düşük Lif Alımı Sinyali Yok",
+    "Fiber Intake Not Assessed": "Lif Alımı Değerlendirilmedi",
     "Low WBC Indicator": "Düşük WBC Göstergesi",
     "Elevated WBC Indicator": "Yüksek WBC Göstergesi",
     "Low RBC Indicator": "Düşük RBC Göstergesi",
@@ -694,7 +693,7 @@ COLUMN_LABEL_TRANSLATIONS = {
     "Ferritin_Risk_Level": {"en": "Ferritin Risk", "tr": "Ferritin Riski"},
     "Fiber_Risk_Level": {"en": "Fiber Risk", "tr": "Lif Riski"},
     "Sugar_Risk_Level": {"en": "Sugar Risk", "tr": "Şeker Riski"},
-    "Diet_Quality_Risk_Level": {"en": "Diet Quality Risk", "tr": "Beslenme Kalitesi Riski"},
+    "Diet_Quality_Risk_Level": {"en": "Fiber Intake Signal", "tr": "Lif Alımı Sinyali"},
     "WBC_Risk_Level": {"en": "WBC Risk", "tr": "WBC Riski"},
     "RBC_Risk_Level": {"en": "RBC Risk", "tr": "RBC Riski"},
     "Hematocrit_Risk_Level": {"en": "Hematocrit Risk", "tr": "Hematokrit Riski"},
@@ -1431,7 +1430,9 @@ def localized_dataframe(dataframe):
             display_data[column] = display_data[column].apply(
                 lambda value, selected_column=column: localize_value(selected_column, value)
             )
-    return display_data.rename(columns={column: display_label(column) for column in display_data.columns})
+    return display_data.rename(
+        columns={column: display_label(column) for column in display_data.columns}
+    )
 
 
 def render_body_measurement_cards(row):
@@ -1594,26 +1595,30 @@ def render_summary(results):
 
     render_metric_cards(results, profiles)
 
-    st.markdown(f'<div class="bd-section-kicker">{t("profile_distribution")}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="bd-section-kicker">{t("profile_distribution")}</div>', unsafe_allow_html=True
+    )
     st.dataframe(profiles, width="stretch", hide_index=True)
 
 
 def render_project_audit(results, run_ml_audit_enabled, audit_rows):
-    st.markdown(f'<div class="bd-section-kicker">{t("audit_section")}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="bd-section-kicker">{t("audit_section")}</div>', unsafe_allow_html=True
+    )
 
     audit = cached_data_audit(results)
     summary = audit["summary"]
     render_simple_metric_grid(
         [
-            (t("rows"), f'{summary["Rows"]:,}'),
-            (t("columns"), f'{summary["Columns"]:,}'),
-            (t("duplicates"), f'{summary["Duplicate_Patient_IDs"]:,}'),
-            (t("missing_cells"), f'{summary["Missing_Cells_Percent"]}%'),
-            (t("model_features"), f'{summary["Model_Features_Available"]:,}'),
-            (t("target_classes"), f'{summary["Target_Classes"]:,}'),
+            (t("rows"), f"{summary['Rows']:,}"),
+            (t("columns"), f"{summary['Columns']:,}"),
+            (t("duplicates"), f"{summary['Duplicate_Patient_IDs']:,}"),
+            (t("missing_cells"), f"{summary['Missing_Cells_Percent']}%"),
+            (t("model_features"), f"{summary['Model_Features_Available']:,}"),
+            (t("target_classes"), f"{summary['Target_Classes']:,}"),
         ]
     )
-    st.caption(f'{t("age_range")}: {summary["Age_Min"]:.0f} - {summary["Age_Max"]:.0f}')
+    st.caption(f"{t('age_range')}: {summary['Age_Min']:.0f} - {summary['Age_Max']:.0f}")
 
     data_tab, ml_tab = st.tabs([t("data_readiness"), t("ml_readiness")])
     with data_tab:
@@ -1665,9 +1670,9 @@ def render_project_audit(results, run_ml_audit_enabled, audit_rows):
 
         render_simple_metric_grid(
             [
-                (t("training_rows"), f'{ml_audit["sample_rows"]:,}'),
-                (t("target_classes"), f'{ml_audit["target_classes"]:,}'),
-                (t("model_features"), f'{ml_audit["feature_count"]:,}'),
+                (t("training_rows"), f"{ml_audit['sample_rows']:,}"),
+                (t("target_classes"), f"{ml_audit['target_classes']:,}"),
+                (t("model_features"), f"{ml_audit['feature_count']:,}"),
             ]
         )
         st.subheader(t("ml_readiness"))
@@ -1687,7 +1692,9 @@ def render_product_checker(profile_memory):
     st.caption(t("profile_memory_saved"))
     allergies = profile_memory.get("allergies", [])
     if allergies:
-        st.write(f"{t('allergy_profile')}: {', '.join(allergy_label(allergy) for allergy in allergies)}")
+        st.write(
+            f"{t('allergy_profile')}: {', '.join(allergy_label(allergy) for allergy in allergies)}"
+        )
 
     barcode = st.text_input(t("barcode"), key="product_barcode")
     if st.button(t("lookup_product")):
@@ -1711,16 +1718,34 @@ def render_product_checker(profile_memory):
     st.markdown(f"**{t('nutrition_per_100g')}**")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        energy_kcal = st.number_input(t("energy_kcal"), min_value=0.0, value=0.0, step=1.0, key="product_energy_kcal_100g")
-        sugar_g = st.number_input(t("sugar_g"), min_value=0.0, value=0.0, step=0.1, key="product_sugar_g_100g")
+        energy_kcal = st.number_input(
+            t("energy_kcal"), min_value=0.0, value=0.0, step=1.0, key="product_energy_kcal_100g"
+        )
+        sugar_g = st.number_input(
+            t("sugar_g"), min_value=0.0, value=0.0, step=0.1, key="product_sugar_g_100g"
+        )
     with col2:
-        saturated_fat_g = st.number_input(t("saturated_fat_g"), min_value=0.0, value=0.0, step=0.1, key="product_saturated_fat_g_100g")
-        salt_g = st.number_input(t("salt_g"), min_value=0.0, value=0.0, step=0.1, key="product_salt_g_100g")
+        saturated_fat_g = st.number_input(
+            t("saturated_fat_g"),
+            min_value=0.0,
+            value=0.0,
+            step=0.1,
+            key="product_saturated_fat_g_100g",
+        )
+        salt_g = st.number_input(
+            t("salt_g"), min_value=0.0, value=0.0, step=0.1, key="product_salt_g_100g"
+        )
     with col3:
-        sodium_mg = st.number_input(t("sodium_mg"), min_value=0.0, value=0.0, step=10.0, key="product_sodium_mg_100g")
-        protein_g = st.number_input(t("protein_g"), min_value=0.0, value=0.0, step=0.1, key="product_protein_g_100g")
+        sodium_mg = st.number_input(
+            t("sodium_mg"), min_value=0.0, value=0.0, step=10.0, key="product_sodium_mg_100g"
+        )
+        protein_g = st.number_input(
+            t("protein_g"), min_value=0.0, value=0.0, step=0.1, key="product_protein_g_100g"
+        )
     with col4:
-        fiber_g = st.number_input(t("fiber_g"), min_value=0.0, value=0.0, step=0.1, key="product_fiber_g_100g")
+        fiber_g = st.number_input(
+            t("fiber_g"), min_value=0.0, value=0.0, step=0.1, key="product_fiber_g_100g"
+        )
 
     if st.button(t("evaluate_product"), type="primary"):
         product = {
@@ -1763,17 +1788,21 @@ def render_results(
     audit_rows=1000,
     profile_memory=None,
 ):
-    st.markdown(f'<div class="bd-section-kicker">{t("result_section")}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="bd-section-kicker">{t("result_section")}</div>', unsafe_allow_html=True
+    )
     st.markdown(f'<div class="bd-status">{t("completed")}</div>', unsafe_allow_html=True)
 
-    tabs = st.tabs([
-        t("summary_tab"),
-        t("cards_tab"),
-        t("table_tab"),
-        t("risk_tab"),
-        t("audit_tab"),
-        t("product_tab"),
-    ])
+    tabs = st.tabs(
+        [
+            t("summary_tab"),
+            t("cards_tab"),
+            t("table_tab"),
+            t("risk_tab"),
+            t("audit_tab"),
+            t("product_tab"),
+        ]
+    )
 
     with tabs[0]:
         render_key_results_summary(results)
@@ -1798,7 +1827,9 @@ def render_results(
 
     with tabs[3]:
         risk_columns = available_columns(results, RISK_COLUMNS)
-        base_columns = available_columns(results, ["Patient_ID", "Gender", "Age", "Weight_kg", "Height_cm", "BMI"])
+        base_columns = available_columns(
+            results, ["Patient_ID", "Gender", "Age", "Weight_kg", "Height_cm", "BMI"]
+        )
         st.dataframe(
             localized_dataframe(results[base_columns + risk_columns]),
             width="stretch",
@@ -1939,7 +1970,9 @@ analysis_failed = False
 if analyze_clicked:
     try:
         with st.spinner(t("running")):
-            if (uploaded_pdf is not None or uploaded_allergy_pdf is not None) and not health_upload_consent:
+            if (
+                uploaded_pdf is not None or uploaded_allergy_pdf is not None
+            ) and not health_upload_consent:
                 raise BioDietixPDFError(t("health_upload_consent_required"))
             allergies, detected_allergies, allergy_pdf_text = collect_allergies(
                 selected_allergies,
@@ -1995,7 +2028,9 @@ if analyze_clicked:
             st.session_state["last_results"] = results_df
             st.session_state["last_extracted_values"] = extracted_values
             st.session_state["last_extracted_text"] = extracted_text
-            st.session_state["last_run_ml_audit_enabled"] = run_ml_audit_enabled if source_type != "upload_pdf" else False
+            st.session_state["last_run_ml_audit_enabled"] = (
+                run_ml_audit_enabled if source_type != "upload_pdf" else False
+            )
             st.session_state["last_audit_rows"] = audit_rows
             st.session_state["latest_profile_memory"] = profile_memory
 

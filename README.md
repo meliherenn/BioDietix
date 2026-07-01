@@ -184,12 +184,15 @@ flutter run \
   --dart-define=BIODIETIX_API_URL=http://10.0.2.2:8000
 ```
 
-Release APK üretin (yayın gizlilik politikası URL'sini kullanın):
+Release APK üretin (gerçek yayın URL'lerini ve izlenen destek adresini kullanın):
 
 ```bash
 flutter build apk --release --flavor prod \
   --dart-define=FLAVOR=prod \
-  --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://YOUR_PUBLIC_PRIVACY_POLICY
+  --dart-define=BIODIETIX_API_URL=https://YOUR_PRODUCTION_API_HOST \
+  --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://YOUR_PUBLIC_PRIVACY_POLICY \
+  --dart-define=BIODIETIX_ACCOUNT_DELETION_URL=https://YOUR_PUBLIC_DELETION_PAGE \
+  --dart-define=BIODIETIX_SUPPORT_EMAIL=YOUR_MONITORED_SUPPORT_EMAIL
 ```
 
 App Check kapalı kontrollü sideload testi yalnızca `dev` flavor ve App Check'i
@@ -221,6 +224,8 @@ flutter build appbundle --release --flavor prod \
   --dart-define=FLAVOR=prod \
   --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
   --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://YOUR_PUBLIC_PRIVACY_POLICY \
+  --dart-define=BIODIETIX_ACCOUNT_DELETION_URL=https://YOUR_PUBLIC_DELETION_PAGE \
+  --dart-define=BIODIETIX_SUPPORT_EMAIL=YOUR_MONITORED_SUPPORT_EMAIL \
   --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
@@ -324,9 +329,10 @@ flutter test
 flutter build apk --debug --flavor dev --dart-define=FLAVOR=dev
 
 cd ..
-python -m unittest discover -s tests -v
+python -m pytest
 python -m scripts.validate_dataset BioDietix_CLEAN.csv
-ruff check api.py biodietix.py utils tests scripts
+ruff check .
+ruff format --check .
 ```
 
 Release görevi, `mobile/android/key.properties` olmadığında debug anahtarına
@@ -347,6 +353,12 @@ bağımlılık audit işlerini çalıştırır.
 - [Üretim hazırlık denetimi](docs/PRODUCTION_READINESS_AUDIT.md)
 - [Bilimsel doğrulama matrisi](docs/SCIENTIFIC_VALIDATION.md)
 - [Google Play hazırlık kontrol listesi](docs/PLAY_STORE_READINESS.md)
+- [Play Store engellerini kapatma planı](docs/PLAY_STORE_BLOCKERS_CLOSURE_PLAN.md)
+- [Play beyanları inceleme taslağı](docs/GOOGLE_PLAY_DECLARATIONS_DRAFT.md)
+- [Firebase ve Play Integrity kontrol listesi](docs/FIREBASE_PLAY_INTEGRITY_CHECKLIST.md)
+- [Internal Testing QA kontrol listesi](docs/INTERNAL_TESTING_QA_CHECKLIST.md)
+- [Gizlilik politikası şablonu](docs/PRIVACY_POLICY_TEMPLATE.md)
+- [Hesap silme sayfası şablonu](docs/ACCOUNT_DELETION_PAGE_TEMPLATE.md)
 - [Güvenlik politikası](SECURITY.md)
 - [Gizlilik ve veri işleme taslağı](PRIVACY.md)
 

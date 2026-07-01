@@ -21,6 +21,8 @@ flutter build appbundle --release --flavor prod \
   --dart-define=FLAVOR=prod \
   --dart-define=BIODIETIX_API_URL=https://YOUR_PRODUCTION_API_HOST \
   --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://YOUR_PUBLIC_PRIVACY_POLICY \
+  --dart-define=BIODIETIX_ACCOUNT_DELETION_URL=https://YOUR_PUBLIC_DELETION_PAGE \
+  --dart-define=BIODIETIX_SUPPORT_EMAIL=YOUR_MONITORED_SUPPORT_EMAIL \
   --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
@@ -30,7 +32,7 @@ Expected output:
 mobile/build/app/outputs/bundle/prodRelease/app-prod-release.aab
 ```
 
-Never set `BIODIETIX_APP_CHECK_ENABLED=false` for a production flavor; the app now refuses that configuration.
+Never set `BIODIETIX_APP_CHECK_ENABLED=false` for a production flavor; the app now refuses that configuration. Production startup also rejects a missing/non-HTTPS privacy or deletion URL and a missing/invalid support email. Placeholder values are acceptable only for local build validation and must not be uploaded to Play.
 
 ## Identity, version and SDK
 
@@ -54,6 +56,25 @@ Never set `BIODIETIX_APP_CHECK_ENABLED=false` for a production flavor; the app n
 
 The Gradle build intentionally fails release tasks when `key.properties` is absent.
 
+Example upload-key generation (choose a secure path/alias and enter passwords interactively; do not place them in shell history):
+
+```bash
+keytool -genkeypair -v \
+  -keystore /secure/path/biodietix-upload.jks \
+  -alias biodietix-upload \
+  -keyalg RSA -keysize 4096 -validity 10000
+```
+
+Verify the candidate bundle and inspect its signing certificate before upload:
+
+```bash
+jarsigner -verify -verbose -certs build/app/outputs/bundle/prodRelease/app-prod-release.aab
+keytool -printcert -jarfile build/app/outputs/bundle/prodRelease/app-prod-release.aab
+sha256sum build/app/outputs/bundle/prodRelease/app-prod-release.aab
+```
+
+The local AAB is signed with the upload key. Google signs delivered APKs with the Play app-signing key after Play App Signing enrollment. Record and register both certificate identities where required; see [Android app signing](https://developer.android.com/studio/publish/app-signing).
+
 ## Health apps declaration
 
 All Play apps must complete the Health apps declaration, including testing tracks. Declare the actual nutrition/health functionality: lab-report processing, BMI/body measurements, allergy data and personalized food-product guidance. Do not describe BioDietix as diagnosis, treatment, clinical decision support or a certified medical device. [Official Health apps declaration guidance](https://support.google.com/googleplay/android-developer/answer/14738291?hl=en)
@@ -69,6 +90,7 @@ Google requires this type of disclaimer for non-regulated health/medical apps an
 - [ ] Replace `PRIVACY.md` draft with counsel-reviewed content.
 - [ ] Host it at an active, public, non-geofenced HTTPS URL; it must not be a PDF and must be viewable without login.
 - [ ] Put the same URL in Play Console and `BIODIETIX_PRIVACY_POLICY_URL`; verify the Settings button.
+- [ ] Configure `BIODIETIX_SUPPORT_EMAIL` to a monitored address shown by the app.
 - [ ] State controller/developer identity and contact, data categories, purposes, legal bases/consent, retention, deletion, international transfers, Firebase/Render/Open Food Facts roles, security, children's policy, user rights, complaint authority and effective/change dates.
 - [ ] Explain that PDFs are processed transiently, while derived profile/lab values sync to Firebase unless deleted.
 - [ ] Do not say data “stays on this phone” without also explaining Firestore sync.
@@ -79,7 +101,7 @@ Google requires this type of disclaimer for non-regulated health/medical apps an
 - [ ] Verify in-app account deletion removes known Firestore subcollections, user document, Storage photo, local encrypted data and Firebase Auth account.
 - [ ] Test the recent-login/reauthentication path.
 - [ ] Publish an external web route where an uninstalled/signed-out user can request account and associated-data deletion.
-- [ ] Put that URL in Play Console Data Safety; identify any retention exceptions and completion timeline.
+- [ ] Put that URL in Play Console Data Safety and `BIODIETIX_ACCOUNT_DELETION_URL`; identify any retention exceptions and completion timeline.
 
 Google requires both an in-app path and an external web deletion-request resource for apps that create accounts. [Official account deletion requirements](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en-EN)
 
@@ -153,6 +175,14 @@ Provide Play reviewers with:
 
 Keep the test account active through review and verify it against the production backend/App Check configuration immediately before submission.
 
+Internal Testing sequence:
+
+1. Upload the exact signed candidate AAB and retain its SHA-256.
+2. Complete App content forms required for the testing track and add named testers/test list.
+3. Install only through the Play opt-in link, then execute [INTERNAL_TESTING_QA_CHECKLIST.md](INTERNAL_TESTING_QA_CHECKLIST.md).
+4. Review pre-launch report, Android vitals and App Check metrics; resolve defects and upload a higher version code for every replacement.
+5. Keep reviewer credentials active and provide synthetic PDF/product data only—never a real patient report.
+
 ## Content rating and target audience
 
 - [ ] Complete IARC questionnaire accurately; the app contains health/nutrition information but no gambling/violence/sexual content.
@@ -183,8 +213,10 @@ Keep the test account active through review and verify it against the production
 
 ## Final manual acceptance
 
-- [ ] `python -m unittest discover -s tests -v`
-- [ ] `ruff check api.py biodietix.py utils tests scripts`
+- [ ] `python -m pytest`
+- [ ] `ruff check .`
+- [ ] `ruff format --check .`
+- [ ] `pip check` and `pip-audit` (when installed).
 - [ ] `flutter analyze`
 - [ ] `flutter test`
 - [ ] Debug dev APK build.
@@ -192,3 +224,7 @@ Keep the test account active through review and verify it against the production
 - [ ] Physical-device Android 13–current tests: auth, Google, Play Integrity, camera permission denial, PDF picker/upload, offline/error, privacy link, export, health deletion and account deletion.
 - [ ] Screen reader, 200% font, contrast and Turkish/English truncation review.
 - [ ] Qualified medical/dietetic approval and legal/privacy approval recorded with version/date.
+
+## Do not upload until
+
+Do not upload even to a Play testing track with placeholder privacy/deletion/support values, an unconfirmed package ID, debug signing, unconfigured reviewer access, or declarations that do not match the artifact. Do not promote beyond Internal Testing until medical/dietetic and legal review, live public pages, production Firebase/Play Integrity/backend verification, rule deployment, Data Safety/Health Apps review and the physical-device QA checklist are complete for the exact AAB.

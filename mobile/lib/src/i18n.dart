@@ -168,7 +168,7 @@ const _values = {
     'splashReady': 'Ready',
     'onboardLabsTitle': 'Build a balanced plate that fits you',
     'onboardLabsBody':
-        'Add your body details, allergies, and optional reports to shape a diet profile that stays on this phone.',
+        'Add body details, allergies, and optional reports to shape a profile cached on this device and synced to your account.',
     'onboardScanTitle': 'Choose packaged food with confidence',
     'onboardScanBody':
         'Scan a barcode or enter label details to compare sugar, salt, fiber, and allergens with your profile.',
@@ -299,7 +299,7 @@ const _values = {
     'allergies': 'Allergies',
     'notAvailable': 'Not available',
     'profileSubtitle':
-        'Saved on this phone after sign-in. Health files stay available until you replace or delete them.',
+        'Profile data and derived report results are cached on this device and synced to your account until you replace or delete them.',
     'personalDetails': 'Personal details',
     'gender': 'Gender',
     'female': 'Female',
@@ -309,7 +309,7 @@ const _values = {
     'heightCm': 'Height (cm)',
     'knownAllergies': 'Known allergies',
     'saveProfile': 'Save profile to phone',
-    'profileSaved': 'Profile saved on this phone.',
+    'profileSaved': 'Profile saved to this device and your account.',
     'profileSavedInline':
         'Profile saved. These values will be used for the next blood PDF and product checks.',
     'profileSaveFailed': 'Profile could not be saved.',
@@ -317,7 +317,7 @@ const _values = {
         'Enter an age from 18 to 120, weight up to 350 kg, and height up to 250 cm.',
     'limitedLabDataWarning':
         'Only a limited set of lab values was found. The result does not mean that overall health risk is low.',
-    'healthDataCleared': 'Health data deleted from this phone.',
+    'healthDataCleared': 'Health data deleted from this device and cloud.',
     'deleteHealthData': 'Delete health data',
     'exportData': 'Export my data',
     'exportDataPrivacy':
@@ -335,6 +335,11 @@ const _values = {
     'deleteAccountRecentLogin':
         'For security, sign out, sign in again, and retry account deletion.',
     'deleteAccountFailed': 'Account deletion could not be completed.',
+    'requestAccountDeletion': 'Request account deletion',
+    'accountDeletionPageUnavailable':
+        'The account deletion request page could not be opened.',
+    'contactSupport': 'Contact support',
+    'supportUnavailable': 'The support email is not configured.',
     'cancel': 'Cancel',
     'signOut': 'Sign out',
     'testsSubtitle':
@@ -536,7 +541,7 @@ const _values = {
     'splashReady': 'Hazır',
     'onboardLabsTitle': 'Sana uyan dengeli tabağı kur',
     'onboardLabsBody':
-        'Vücut bilgilerini, alerjilerini ve istersen raporlarını ekle; bu telefonda kalan diyet profilin oluşsun.',
+        'Vücut bilgilerini, alerjilerini ve istersen raporlarını ekle; cihazda önbelleğe alınan ve hesabınla eşitlenen profilini oluştur.',
     'onboardScanTitle': 'Paketli gıdayı daha bilinçli seç',
     'onboardScanBody':
         'Barkod tara veya etiket bilgilerini gir; şeker, tuz, lif ve alerjenleri profilinle karşılaştır.',
@@ -667,7 +672,7 @@ const _values = {
     'allergies': 'Alerjiler',
     'notAvailable': 'Mevcut değil',
     'profileSubtitle':
-        'Girişten sonra bu telefonda saklanır. Sağlık dosyaları değiştirene veya silene kadar korunur.',
+        'Profil verileri ve rapordan türetilen sonuçlar, değiştirene veya silene kadar cihazda önbelleğe alınır ve hesabınla eşitlenir.',
     'personalDetails': 'Kişisel bilgiler',
     'gender': 'Cinsiyet',
     'female': 'Kadın',
@@ -677,7 +682,7 @@ const _values = {
     'heightCm': 'Boy (cm)',
     'knownAllergies': 'Bilinen alerjiler',
     'saveProfile': 'Profili telefona kaydet',
-    'profileSaved': 'Profil bu telefona kaydedildi.',
+    'profileSaved': 'Profil bu cihaza ve hesabına kaydedildi.',
     'profileSavedInline':
         'Profil kaydedildi. Bu değerler sonraki kan PDF’i ve ürün kontrollerinde kullanılacak.',
     'profileSaveFailed': 'Profil kaydedilemedi.',
@@ -685,7 +690,7 @@ const _values = {
         '18-120 arası yaş, en fazla 350 kg kilo ve en fazla 250 cm boy girin.',
     'limitedLabDataWarning':
         'Yalnızca sınırlı sayıda laboratuvar değeri bulundu. Sonuç, genel sağlık riskinin düşük olduğu anlamına gelmez.',
-    'healthDataCleared': 'Sağlık verileri bu telefondan silindi.',
+    'healthDataCleared': 'Sağlık verileri bu cihazdan ve buluttan silindi.',
     'deleteHealthData': 'Sağlık verilerini sil',
     'exportData': 'Verilerimi dışa aktar',
     'exportDataPrivacy':
@@ -703,6 +708,10 @@ const _values = {
     'deleteAccountRecentLogin':
         'Güvenlik için çıkış yapın, yeniden giriş yapın ve hesap silmeyi tekrar deneyin.',
     'deleteAccountFailed': 'Hesap silme tamamlanamadı.',
+    'requestAccountDeletion': 'Hesap silme talebi oluştur',
+    'accountDeletionPageUnavailable': 'Hesap silme talep sayfası açılamadı.',
+    'contactSupport': 'Destek ile iletişime geç',
+    'supportUnavailable': 'Destek e-posta adresi yapılandırılmadı.',
     'cancel': 'İptal',
     'signOut': 'Çıkış yap',
     'testsSubtitle':
@@ -932,6 +941,7 @@ const _profileReplacements = {
   'Inflammation / Immune Indicator': 'Enflamasyon / Bağışıklık Göstergesi',
   'Weight Management Focus': 'Kilo Yönetimi Odağı',
   'Blood Pressure / Kidney Risk': 'Tansiyon / Böbrek Riski',
+  'Fiber Intake Signal': 'Lif Alımı Sinyali',
 };
 
 const _foodReplacements = {

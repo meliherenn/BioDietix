@@ -114,9 +114,7 @@ ALLERGEN_KEYWORDS = {
 }
 
 ALLERGY_SYNONYMS = {
-    keyword: canonical
-    for canonical, keywords in ALLERGEN_KEYWORDS.items()
-    for keyword in keywords
+    keyword: canonical for canonical, keywords in ALLERGEN_KEYWORDS.items() for keyword in keywords
 }
 ALLERGY_SYNONYMS.update({canonical: canonical for canonical in COMMON_ALLERGIES})
 
@@ -317,7 +315,9 @@ def extract_allergies_from_text(text):
         has_negative_word = any(term in normalized_line for term in NEGATIVE_ALLERGY_TERMS)
         numeric_values = [
             _to_number(match.group(1))
-            for match in re.finditer(r"([0-9]+(?:[.,][0-9]+)?)\s*(?:kua/l|ku/l|iu/ml)?", normalized_line)
+            for match in re.finditer(
+                r"([0-9]+(?:[.,][0-9]+)?)\s*(?:kua/l|ku/l|iu/ml)?", normalized_line
+            )
         ]
         has_positive_numeric = any(value is not None and value >= 0.35 for value in numeric_values)
 
@@ -681,14 +681,10 @@ def _record_signal(reasons, alternatives, reason, alternative, severity, points,
 
 def _product_data_quality(normalized_product, nutrient_map, nova_group, nutrition_grade):
     measured_nutrients = [
-        label
-        for key, label in NUTRIENT_FIELD_LABELS.items()
-        if nutrient_map.get(key) is not None
+        label for key, label in NUTRIENT_FIELD_LABELS.items() if nutrient_map.get(key) is not None
     ]
     missing_nutrients = [
-        label
-        for key, label in NUTRIENT_FIELD_LABELS.items()
-        if nutrient_map.get(key) is None
+        label for key, label in NUTRIENT_FIELD_LABELS.items() if nutrient_map.get(key) is None
     ]
     summary_signals = []
     if nova_group is not None:
@@ -728,9 +724,7 @@ def evaluate_product_for_profile(product, profile_memory):
     allergies = normalize_allergies(profile_memory.get("allergies", []))
     allergen_matches = _find_allergy_matches(normalized_product, allergies)
     conflicts = [match["allergen"] for match in allergen_matches]
-    confirmed_conflicts = [
-        match for match in allergen_matches if match["certainty"] != "possible"
-    ]
+    confirmed_conflicts = [match for match in allergen_matches if match["certainty"] != "possible"]
 
     reasons = []
     positives = []
@@ -753,9 +747,7 @@ def evaluate_product_for_profile(product, profile_memory):
         match["allergen"] for match in allergen_matches if match["certainty"] == "possible"
     ]
     if possible_conflicts:
-        reasons.append(
-            {"code": "possible_allergy_conflict", "allergens": possible_conflicts}
-        )
+        reasons.append({"code": "possible_allergy_conflict", "allergens": possible_conflicts})
         _add_unique(alternatives, {"code": "allergy_safe_same_category"})
         severity = max(severity, 2)
 
@@ -832,7 +824,11 @@ def evaluate_product_for_profile(product, profile_memory):
             "BMI",
         )
     )
-    diet_quality_sensitive = _profile_contains(profile_memory, "Diet Quality")
+    fiber_intake_sensitive = _profile_contains(
+        profile_memory,
+        "Fiber Intake Signal",
+        "Diet Quality",  # Backward compatibility for previously stored profiles.
+    )
     thyroid_sensitive = _profile_contains(profile_memory, "Thyroid", "Metabolism")
     risk_points = 0
 
@@ -886,9 +882,7 @@ def evaluate_product_for_profile(product, profile_memory):
 
     if saturated_fat is not None:
         if saturated_fat >= 15:
-            nutrition_flags.append(
-                {"code": "very_high_saturated_fat", "value": saturated_fat}
-            )
+            nutrition_flags.append({"code": "very_high_saturated_fat", "value": saturated_fat})
             severity, risk_points = _record_signal(
                 reasons,
                 alternatives,
@@ -899,9 +893,7 @@ def evaluate_product_for_profile(product, profile_memory):
                 3,
             )
         elif saturated_fat >= 5:
-            nutrition_flags.append(
-                {"code": "high_saturated_fat", "value": saturated_fat}
-            )
+            nutrition_flags.append({"code": "high_saturated_fat", "value": saturated_fat})
             severity, risk_points = _record_signal(
                 reasons,
                 alternatives,
@@ -915,9 +907,7 @@ def evaluate_product_for_profile(product, profile_memory):
     high_sodium = (salt is not None and salt >= 1.5) or (sodium is not None and sodium >= 600)
     moderate_sodium = (salt is not None and salt >= 0.75) or (sodium is not None and sodium >= 300)
     if high_sodium:
-        nutrition_flags.append(
-            {"code": "high_salt_or_sodium", "salt": salt, "sodium": sodium}
-        )
+        nutrition_flags.append({"code": "high_salt_or_sodium", "salt": salt, "sodium": sodium})
         severity, risk_points = _record_signal(
             reasons,
             alternatives,
@@ -928,9 +918,7 @@ def evaluate_product_for_profile(product, profile_memory):
             2,
         )
     elif moderate_sodium:
-        nutrition_flags.append(
-            {"code": "moderate_salt_or_sodium", "salt": salt, "sodium": sodium}
-        )
+        nutrition_flags.append({"code": "moderate_salt_or_sodium", "salt": salt, "sodium": sodium})
         severity, risk_points = _record_signal(
             reasons,
             alternatives,
@@ -978,9 +966,7 @@ def evaluate_product_for_profile(product, profile_memory):
         )
 
     if nutrition_grade in {"d", "e"}:
-        nutrition_flags.append(
-            {"code": "lower_nutrition_grade", "value": nutrition_grade.upper()}
-        )
+        nutrition_flags.append({"code": "lower_nutrition_grade", "value": nutrition_grade.upper()})
         severity, risk_points = _record_signal(
             reasons,
             alternatives,
@@ -991,8 +977,10 @@ def evaluate_product_for_profile(product, profile_memory):
             2 if nutrition_grade == "e" else 1,
         )
 
-    if fiber is not None and fiber < 3 and (
-        (sugar is not None and sugar >= 10) or (energy is not None and energy >= 400)
+    if (
+        fiber is not None
+        and fiber < 3
+        and ((sugar is not None and sugar >= 10) or (energy is not None and energy >= 400))
     ):
         nutrition_flags.append({"code": "low_fiber", "value": fiber})
         severity, risk_points = _record_signal(
@@ -1065,17 +1053,14 @@ def evaluate_product_for_profile(product, profile_memory):
         "renklendirici",
         "koruyucu",
     )
-    if (diet_quality_sensitive or thyroid_sensitive) and any(term in product_text for term in ultra_processed_terms):
-        if diet_quality_sensitive:
-            _add_unique(matched_risks, "diet_quality")
-        if thyroid_sensitive:
-            _add_unique(matched_risks, "thyroid_marker")
+    if thyroid_sensitive and any(term in product_text for term in ultra_processed_terms):
+        _add_unique(matched_risks, "thyroid_marker")
         reasons.append({"code": "ultra_processed_diet"})
         _add_unique(alternatives, {"code": "fresh_whole_food"})
         severity = max(severity, 2)
 
-    if diet_quality_sensitive and fiber is not None and fiber < 3:
-        _add_unique(matched_risks, "diet_quality")
+    if fiber_intake_sensitive and fiber is not None and fiber < 3:
+        _add_unique(matched_risks, "fiber_intake")
         reasons.append({"code": "low_fiber_diet", "value": fiber})
         _add_unique(alternatives, {"code": "high_fiber_option"})
         severity = max(severity, 1)
@@ -1107,11 +1092,7 @@ def evaluate_product_for_profile(product, profile_memory):
     else:
         decision = "recommended"
 
-    if (
-        decision == "not_recommended"
-        and measured_nutrient_count == 0
-        and not allergen_matches
-    ):
+    if decision == "not_recommended" and measured_nutrient_count == 0 and not allergen_matches:
         decision = "use_with_caution"
 
     decision_label = {

@@ -97,20 +97,25 @@ Release APK:
 ```bash
 flutter build apk --release --flavor prod \
   --dart-define=FLAVOR=prod \
-  --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
-  --dart-define=BIODIETIX_APP_CHECK_ENABLED=false
+  --dart-define=BIODIETIX_API_URL=https://YOUR_PRODUCTION_API_HOST \
+  --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://YOUR_PUBLIC_PRIVACY_POLICY \
+  --dart-define=BIODIETIX_ACCOUNT_DELETION_URL=https://YOUR_PUBLIC_DELETION_PAGE \
+  --dart-define=BIODIETIX_SUPPORT_EMAIL=YOUR_MONITORED_SUPPORT_EMAIL \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
-Bu `false` ayarı yalnız App Check zorunluluğu kapalı deneme/sideload dağıtımı
-içindir. Play Internal Testing ve production build'lerinde App Check açık
-olmalıdır:
+Prod flavor App Check kapalıyken veya gizlilik/silme/destek bilgileri eksikken
+başlatılmaz. App Check kapalı kontrollü testler yalnız dev flavor ile yapılır.
 
 Play Store app bundle:
 
 ```bash
 flutter build appbundle --release --flavor prod \
   --dart-define=FLAVOR=prod \
-  --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
+  --dart-define=BIODIETIX_API_URL=https://YOUR_PRODUCTION_API_HOST \
+  --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://YOUR_PUBLIC_PRIVACY_POLICY \
+  --dart-define=BIODIETIX_ACCOUNT_DELETION_URL=https://YOUR_PUBLIC_DELETION_PAGE \
+  --dart-define=BIODIETIX_SUPPORT_EMAIL=YOUR_MONITORED_SUPPORT_EMAIL \
   --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
@@ -144,9 +149,12 @@ keystore'u güvenli biçimde sağlayın.
 
 ## Tıbbi Uyarı
 
-BioDietix çıktıları eğitim/proje amaçlıdır. Tanı, tedavi veya profesyonel sağlık
-görüşünün yerine geçmez.
+BioDietix bir tıbbi cihaz değildir; herhangi bir durumu teşhis, tedavi veya
+önleme amacı taşımaz. Çıktılar destekleyici beslenme bilgisidir ve profesyonel
+sağlık görüşünün yerine geçmez.
 
 Sağlık profili cihazda platform secure storage anahtarlı şifreli Hive kutusunda
-tutulur. Firestore ve Storage erişimi repo kökündeki UID tabanlı kurallarla
-sınırlandırılmalıdır.
+önbelleğe alınır ve oturum açılmış kullanıcı için Firestore ile eşitlenir.
+İsteğe bağlı profil fotoğrafı Storage'a yüklenir. Firestore ve Storage erişimi
+repo kökündeki UID tabanlı kurallarla sınırlandırılmalı ve yayın öncesi gerçekten
+deploy edildiği doğrulanmalıdır.

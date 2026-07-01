@@ -52,10 +52,10 @@ No rule has yet undergone prospective clinical validation. Release requires revi
 | Rule | Current threshold | Assessment / required change |
 | --- | --- | --- |
 | Daily fiber | `>=25 g` adequate; `15–24.9` low-moderate; `<15` low | Useful general adult heuristic, but targets vary by age, sex and energy intake. Keep as general pattern guidance only. |
-| Daily sugar | `<=25`, `25–50`, `>50 g` | Not scientifically reliable unless the field distinguishes added/free sugar from total sugar and includes energy intake. Do not present this as a clinical threshold. Data dictionary and pipeline need correction (P1). |
-| Daily fat | `>100 g` contributes to “diet quality risk” | Not valid without energy intake and fat type. Remove from future diet-quality scoring (P1). |
-| Dietary cholesterol | `>300 mg` contributes to “diet quality risk” | Outdated as a stand-alone universal quality threshold. Remove from future diet-quality scoring (P1). |
-| Diet quality | Count of low fiber, high sugar, fat >100, cholesterol >300 | Not a validated diet-quality score. Rename as an internal heuristic or replace with a validated instrument; do not market it as diet-quality assessment. |
+| Daily sugar | `<=25`, `25–50`, `>50 g` remains in a legacy descriptive column | Not scientifically reliable unless the field distinguishes added/free sugar from total sugar and includes energy intake. It no longer contributes to a profile, recommendation trigger or aggregate score. Do not expose it as a clinical/diet-quality threshold; the data dictionary still needs correction. |
+| Daily fat | No longer used in a diet-quality score | The unsupported `>100 g` aggregate-score contribution was removed. Total fat requires energy and fat-type context. |
+| Dietary cholesterol | No longer used in a diet-quality score | The unsupported `>300 mg` aggregate-score contribution was removed. Do not use a stand-alone universal cutoff to characterize overall diet quality. |
+| Fiber intake signal (legacy API field `Diet_Quality_Risk_Level`) | `<15 g`: “Low Fiber Intake Signal”; `15–24.9 g`: “Lower Fiber Intake Signal”; `>=25 g`: “No Low-Fiber Intake Signal”; missing fiber: not assessed | Replaces the unvalidated aggregate diet-quality score. This is an explainable input signal, not a validated overall diet score or health diagnosis. User wording is conditional on the entry reflecting usual intake and recommends gradual varied sources/individual review. Adult targets vary by age, sex and energy intake, so dietitian sign-off is still required. |
 | Age group | Adult bands at 18/31/51/65 | Product segmentation, not a medical rule. The exact breaks have no cited clinical basis (“needs source”). |
 
 ## Allergy extraction and matching
@@ -96,7 +96,7 @@ Implemented safety changes:
 
 Remaining validation gates:
 
-1. Replace the unvalidated diet-quality heuristic.
+1. Obtain dietitian review of the replacement fiber-intake signal and decide whether the legacy daily sugar classification should be removed or redesigned with added/free-sugar and energy context.
 2. Validate Turkish lab names, units, decimal separators, and reference intervals against de-identified reports from multiple laboratories.
 3. Add explicit fasting status and source units to the API schema; incompatible units and inequality-only values are now omitted rather than silently misinterpreted.
 4. Expand canonical allergens and preserve provenance (“manual” versus “PDF sensitization signal”).

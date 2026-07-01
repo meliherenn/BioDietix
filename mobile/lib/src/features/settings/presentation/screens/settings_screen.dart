@@ -64,15 +64,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _openPrivacyPolicy() async {
-    final strings = AppScope.of(context).strings;
-    final uri = Uri.tryParse(widget.config.privacyPolicyUrl);
-    if (uri == null || uri.scheme != 'https') {
-      showAppSnack(context, strings.t('privacyPolicyUnavailable'));
+    await _openExternalUri(
+      AppConfig.httpsUri(widget.config.privacyPolicyUrl),
+      unavailableMessage: AppScope.of(
+        context,
+      ).strings.t('privacyPolicyUnavailable'),
+    );
+  }
+
+  Future<void> _openAccountDeletionPage() async {
+    await _openExternalUri(
+      AppConfig.httpsUri(widget.config.accountDeletionUrl),
+      unavailableMessage: AppScope.of(
+        context,
+      ).strings.t('accountDeletionPageUnavailable'),
+    );
+  }
+
+  Future<void> _contactSupport() async {
+    await _openExternalUri(
+      AppConfig.supportEmailUri(widget.config.supportEmail),
+      unavailableMessage: AppScope.of(context).strings.t('supportUnavailable'),
+    );
+  }
+
+  Future<void> _openExternalUri(
+    Uri? uri, {
+    required String unavailableMessage,
+  }) async {
+    if (uri == null) {
+      showAppSnack(context, unavailableMessage);
       return;
     }
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
-      showAppSnack(context, strings.t('privacyPolicyUnavailable'));
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) showAppSnack(context, unavailableMessage);
+    } on Exception {
+      if (mounted) showAppSnack(context, unavailableMessage);
     }
   }
 
@@ -450,6 +478,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   label: strings.t('privacyPolicy'),
                   icon: Icons.privacy_tip_outlined,
                   onPressed: _openPrivacyPolicy,
+                  secondary: true,
+                ),
+                const SizedBox(height: 10),
+                AppButton(
+                  label: strings.t('requestAccountDeletion'),
+                  icon: Icons.open_in_new_rounded,
+                  onPressed: _openAccountDeletionPage,
+                  secondary: true,
+                ),
+                const SizedBox(height: 10),
+                AppButton(
+                  label: strings.t('contactSupport'),
+                  icon: Icons.email_outlined,
+                  onPressed: _contactSupport,
                   secondary: true,
                 ),
                 const SizedBox(height: 10),

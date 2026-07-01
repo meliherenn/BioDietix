@@ -40,8 +40,8 @@ FOOD_GUIDE_RULES = [
         "foods_to_limit": "soft drinks, desserts, packaged snacks",
         "foods_to_increase": "fresh fruits, cinnamon",
         "purpose": "Support lower-added-sugar choices",
-        "profiles": ("Blood Sugar Risk", "Diet Quality Risk"),
-        "risk_triggers": (("Sugar_Risk_Level", ("High Sugar Intake Risk",)),),
+        "profiles": ("Blood Sugar Risk",),
+        "risk_triggers": (),
     },
     {
         "category": "Fiber",
@@ -50,7 +50,7 @@ FOOD_GUIDE_RULES = [
         "foods_to_limit": "refined grains, processed foods",
         "foods_to_increase": "vegetables, legumes, chia seeds, flaxseed",
         "purpose": "Support adequate fiber intake",
-        "profiles": ("Diet Quality Risk", "Cardiovascular Lipid Risk"),
+        "profiles": ("Fiber Intake Signal", "Cardiovascular Lipid Risk"),
         "risk_triggers": (("Fiber_Risk_Level", ("Low Fiber Intake Risk", "Low-Moderate")),),
     },
     {
@@ -70,7 +70,7 @@ FOOD_GUIDE_RULES = [
         "foods_to_limit": "butter, margarine, fried foods",
         "foods_to_increase": "olive oil, avocado, nuts",
         "purpose": "Support heart-healthy fat choices",
-        "profiles": ("Cardiovascular Lipid Risk", "Diet Quality Risk"),
+        "profiles": ("Cardiovascular Lipid Risk",),
         "risk_triggers": (
             ("LDL_Risk_Level", ("Borderline High", "High", "Very High")),
             ("Triglyceride_Risk_Level", ("Borderline High", "High", "Very High")),
@@ -133,7 +133,7 @@ FOOD_GUIDE_RULES = [
             "Weight Management Risk",
             "Blood Pressure Risk",
             "Cardiovascular Lipid Risk",
-            "Diet Quality Risk",
+            "Fiber Intake Signal",
             "Abdominal Obesity Risk",
         ),
         "min_profile_matches": 2,
@@ -156,11 +156,7 @@ def _split_foods(value):
 
 
 def _profile_parts(row):
-    return {
-        part.strip()
-        for part in _text(row.get("Health_Profile")).split(",")
-        if part.strip()
-    }
+    return {part.strip() for part in _text(row.get("Health_Profile")).split(",") if part.strip()}
 
 
 def _risk_matches(row, rule):

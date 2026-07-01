@@ -6,7 +6,7 @@ from utils.mobile_health_core import evaluate_product_for_profile
 class ProductEvaluationDecisionTests(unittest.TestCase):
     def setUp(self):
         self.profile = {
-            "health_profile": "Blood Sugar Risk, Diet Quality, Weight Management",
+            "health_profile": "Blood Sugar Risk, Fiber Intake Signal, Weight Management",
             "foods_to_limit": [],
             "allergies": ["milk"],
             "bmi": 26,
@@ -60,6 +60,30 @@ class ProductEvaluationDecisionTests(unittest.TestCase):
             "high_energy_weight",
             [reason["code"] for reason in result["reasons"]],
         )
+
+    def test_fiber_signal_only_uses_measured_product_fiber(self):
+        result = evaluate_product_for_profile(
+            {
+                "name": "Packaged food",
+                "ingredients_text": "vegetables, preservative",
+                "fiber_g_100g": 4,
+            },
+            {
+                "health_profile": "Fiber Intake Signal",
+                "allergies": [],
+            },
+        )
+        reason_codes = [reason["code"] for reason in result["reasons"]]
+        self.assertNotIn("ultra_processed_diet", reason_codes)
+        self.assertNotIn("low_fiber_diet", reason_codes)
+        self.assertNotIn("diet_quality", result["matched_risks"])
+
+        lower_fiber = evaluate_product_for_profile(
+            {"name": "Low-fiber food", "fiber_g_100g": 2},
+            {"health_profile": "Fiber Intake Signal", "allergies": []},
+        )
+        self.assertIn("low_fiber_diet", [reason["code"] for reason in lower_fiber["reasons"]])
+        self.assertIn("fiber_intake", lower_fiber["matched_risks"])
 
     def test_unknown_manual_allergy_is_not_silently_dropped(self):
         profile = {**self.profile, "allergies": ["mustard"]}

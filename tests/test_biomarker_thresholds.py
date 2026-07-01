@@ -1,5 +1,8 @@
 import unittest
 
+import numpy as np
+import pandas as pd
+
 from biodietix import (
     alt_risk,
     ast_risk,
@@ -9,6 +12,7 @@ from biodietix import (
     cholesterol_risk,
     creatinine_risk,
     crp_risk,
+    diet_quality_risk,
     egfr_risk,
     ferritin_risk,
     folate_risk,
@@ -82,6 +86,36 @@ class BiomarkerBoundaryTests(unittest.TestCase):
         self.assertEqual(rbc_risk("Male", 4.4), "Low RBC Indicator")
         self.assertEqual(hct_risk("Female", 35), "Normal")
         self.assertEqual(platelet_risk(451), "Elevated Platelet Indicator")
+
+    def test_diet_signal_uses_only_explainable_fiber_input(self):
+        high_totals = pd.Series(
+            {
+                "Daily_Fiber_g": 30,
+                "Daily_Sugar_g": 80,
+                "Daily_Fat_g": 140,
+                "Daily_Cholesterol_mg": 500,
+                "Fiber_Risk_Level": "Adequate",
+            }
+        )
+        self.assertEqual(
+            diet_quality_risk(high_totals),
+            "No Low-Fiber Intake Signal",
+        )
+
+        low_fiber = high_totals.copy()
+        low_fiber["Daily_Fiber_g"] = 10
+        low_fiber["Fiber_Risk_Level"] = "Low Fiber Intake Risk"
+        self.assertEqual(diet_quality_risk(low_fiber), "Low Fiber Intake Signal")
+
+        missing = pd.Series(
+            {
+                "Daily_Fiber_g": np.nan,
+                "Daily_Sugar_g": np.nan,
+                "Daily_Fat_g": np.nan,
+                "Daily_Cholesterol_mg": np.nan,
+            }
+        )
+        self.assertTrue(pd.isna(diet_quality_risk(missing)))
 
 
 if __name__ == "__main__":

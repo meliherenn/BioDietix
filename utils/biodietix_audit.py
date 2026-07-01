@@ -69,9 +69,8 @@ def available_model_features(dataframe):
 
 def build_data_audit(dataframe):
     missing_ratio = dataframe.isna().mean().sort_values(ascending=False)
-    missing_table = (
-        missing_ratio.reset_index()
-        .rename(columns={"index": "Column", 0: "Missing_Ratio"})
+    missing_table = missing_ratio.reset_index().rename(
+        columns={"index": "Column", 0: "Missing_Ratio"}
     )
     missing_table["Missing_Percent"] = (missing_table["Missing_Ratio"] * 100).round(2)
 
@@ -93,16 +92,13 @@ def build_data_audit(dataframe):
         {
             "Feature": feature_columns,
             "Non_Null_Percent": [
-                round(dataframe[column].notna().mean() * 100, 2)
-                for column in feature_columns
+                round(dataframe[column].notna().mean() * 100, 2) for column in feature_columns
             ],
         }
     )
 
     duplicate_patients = (
-        int(dataframe["Patient_ID"].duplicated().sum())
-        if "Patient_ID" in dataframe.columns
-        else 0
+        int(dataframe["Patient_ID"].duplicated().sum()) if "Patient_ID" in dataframe.columns else 0
     )
     age_min = float(dataframe["Age"].min()) if "Age" in dataframe.columns else math.nan
     age_max = float(dataframe["Age"].max()) if "Age" in dataframe.columns else math.nan
@@ -190,9 +186,7 @@ def run_ml_profile_audit(dataframe, max_rows=1000, max_classes=15, random_state=
     numeric_features = [
         column for column in feature_columns if pd.api.types.is_numeric_dtype(X[column])
     ]
-    categorical_features = [
-        column for column in feature_columns if column not in numeric_features
-    ]
+    categorical_features = [column for column in feature_columns if column not in numeric_features]
 
     preprocessor = ColumnTransformer(
         transformers=[
@@ -216,10 +210,9 @@ def run_ml_profile_audit(dataframe, max_rows=1000, max_classes=15, random_state=
     )
 
     test_size = 0.25
-    can_stratify = (
-        pd.Series(encoded_y).value_counts().min() >= 2
-        and int(len(encoded_y) * test_size) >= len(label_encoder.classes_)
-    )
+    can_stratify = pd.Series(encoded_y).value_counts().min() >= 2 and int(
+        len(encoded_y) * test_size
+    ) >= len(label_encoder.classes_)
     stratify = encoded_y if can_stratify else None
     split_strategy = "random_stratified" if stratify is not None else "random"
     if group_column and model_data[group_column].nunique() >= 2:

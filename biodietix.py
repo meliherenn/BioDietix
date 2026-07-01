@@ -124,9 +124,7 @@ def extract_pdf_text(pdf_path, max_pages=None, max_text_chars=None):
         ) from exc
 
     max_pages = max_pages or int(os.getenv("BIODIETIX_MAX_PDF_PAGES", "50"))
-    max_text_chars = max_text_chars or int(
-        os.getenv("BIODIETIX_MAX_PDF_TEXT_CHARS", "200000")
-    )
+    max_text_chars = max_text_chars or int(os.getenv("BIODIETIX_MAX_PDF_TEXT_CHARS", "200000"))
     text_parts = []
     text_length = 0
 
@@ -420,28 +418,26 @@ def waist_risk(gender, waist):
 
 
 def diet_quality_risk(row):
+    """Return a limited fiber-intake signal, not an aggregate diet score.
+
+    The legacy output column name is retained for API/data compatibility. Total
+    sugar, total fat, and dietary cholesterol are deliberately not combined:
+    those values do not establish overall diet quality without food-pattern,
+    added-sugar, energy-intake, and other context.
+    """
     diet_cols = ["Daily_Fiber_g", "Daily_Sugar_g", "Daily_Fat_g", "Daily_Cholesterol_mg"]
 
     if all(pd.isna(row.get(col, np.nan)) for col in diet_cols):
         return np.nan
 
-    risks = 0
-
-    if row.get("Fiber_Risk_Level") == "Low Fiber Intake Risk":
-        risks += 1
-    if row.get("Sugar_Risk_Level") == "High Sugar Intake Risk":
-        risks += 1
-    if row.get("Daily_Fat_g", np.nan) > 100:
-        risks += 1
-    if row.get("Daily_Cholesterol_mg", np.nan) > 300:
-        risks += 1
-
-    if risks == 0:
-        return "Good Diet Quality"
-    elif risks == 1:
-        return "Moderate Diet Quality Risk"
-    else:
-        return "Poor Diet Quality Risk"
+    fiber_level = row.get("Fiber_Risk_Level")
+    if fiber_level == "Low Fiber Intake Risk":
+        return "Low Fiber Intake Signal"
+    if fiber_level == "Low-Moderate":
+        return "Lower Fiber Intake Signal"
+    if fiber_level == "Adequate":
+        return "No Low-Fiber Intake Signal"
+    return "Fiber Intake Not Assessed"
 
 
 def wbc_risk(wbc):
@@ -666,11 +662,11 @@ def create_health_profile(row):
     ):
         profiles.append("Liver Enzyme Indicator")
 
-    if (
-        pd.notna(row.get("Diet_Quality_Risk_Level"))
-        and row.get("Diet_Quality_Risk_Level") != "Good Diet Quality"
-    ):
-        profiles.append("Diet Quality Risk")
+    if row.get("Diet_Quality_Risk_Level") in {
+        "Low Fiber Intake Signal",
+        "Lower Fiber Intake Signal",
+    }:
+        profiles.append("Fiber Intake Signal")
 
     if row.get("Waist_Risk_Level") == "Abdominal Obesity Risk":
         profiles.append("Abdominal Obesity Risk")
@@ -884,12 +880,12 @@ def generate_recommendations(row):
             ["very low-calorie diets", "meal skipping", "ultra-processed foods", "excess sugar"]
         )
 
-    if "Diet Quality Risk" in row["Health_Profile"]:
+    if "Fiber Intake Signal" in row["Health_Profile"]:
         recommendations.append(
-            "Improve overall diet quality by increasing fiber and reducing added sugar, saturated fat, and dietary cholesterol."
+            "Recorded fiber intake appears below the general adult reference used by this app. If the entry reflects your usual intake, consider gradually adding varied fiber sources and discuss individual needs with a dietitian or healthcare professional."
         )
         increase_foods.extend(["vegetables", "fruits", "whole grains", "legumes"])
-        limit_foods.extend(["sweets", "processed snacks", "high-fat processed foods"])
+        limit_foods.extend(["low-fiber refined grains", "low-fiber processed snacks"])
 
     if "Abdominal Obesity Risk" in row["Health_Profile"]:
         recommendations.append(

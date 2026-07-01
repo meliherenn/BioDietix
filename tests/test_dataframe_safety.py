@@ -25,6 +25,26 @@ class DataframeSafetyTests(unittest.TestCase):
         self.assertEqual(result.loc[0, "Data_Quality_Status"], "limited")
         self.assertIn("Blood Sugar Risk", result.loc[0, "Health_Profile"])
 
+    def test_low_fiber_creates_a_signal_not_a_diet_quality_claim(self):
+        row = {column: np.nan for column in REQUIRED_ANALYSIS_COLUMNS}
+        row.update(
+            {
+                "Gender": "Female",
+                "Glucose_mgdL": 90,
+                "BMI": 22,
+                "Daily_Fiber_g": 10,
+            }
+        )
+
+        result = analyze_dataframe(pd.DataFrame([row]))
+
+        self.assertEqual(
+            result.loc[0, "Diet_Quality_Risk_Level"],
+            "Low Fiber Intake Signal",
+        )
+        self.assertIn("Fiber Intake Signal", result.loc[0, "Health_Profile"])
+        self.assertNotIn("Diet Quality Risk", result.loc[0, "Health_Profile"])
+
 
 if __name__ == "__main__":
     unittest.main()

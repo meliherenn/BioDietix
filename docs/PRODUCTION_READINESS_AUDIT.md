@@ -39,7 +39,7 @@ High-risk remaining items:
 
 1. The rules have not been reviewed or signed off by a qualified physician/laboratory specialist and registered dietitian.
 2. The PDF parser does not ingest the laboratory's own reference range, specimen type, fasting status or structured unit. Unsupported units are now omitted, which is safer but reduces coverage.
-3. “Diet Quality Risk” is an unvalidated heuristic using fixed fiber/sugar/fat/cholesterol cutoffs. Total versus added/free sugar is unclear, and fixed total-fat/dietary-cholesterol cutoffs lack energy context.
+3. The original “Diet Quality Risk” aggregate was unvalidated. It has now been replaced by a narrowly named low-fiber intake signal; the legacy API field name remains for compatibility. Dietitian review is still required, and the separate total-sugar classification remains unsuitable as a clinical/diet-quality threshold until added/free-sugar and energy context exist.
 4. Creatinine, CBC, liver, CRP, ferritin, thyroid and waist cutoffs vary by laboratory and population. The current bands are only screening-style indicators.
 5. PDF allergy extraction treats `>=0.35` and positive/class text as sensitization signals. Sensitization is not equivalent to clinical allergy; provenance is not yet preserved in stored allergy entries.
 6. The canonical allergy list is incomplete relative to EU/Türkiye labeling categories, although manual allergens are retained.
@@ -177,7 +177,7 @@ Still needed:
 
 ### P1 — required for a credible production launch
 
-1. Replace the diet-quality heuristic and add structured lab units, fasting status and report reference ranges.
+1. Obtain dietitian approval for the replacement fiber signal and add structured lab units, fasting status and report reference ranges.
 2. Validate PDF extraction on a representative de-identified Turkish corpus; add OCR only with a new privacy/security review.
 3. Preserve allergy provenance and expand canonical allergens with allergist/local-label review.
 4. Add shared Redis rate limiting/cache or enforce single-instance operation.

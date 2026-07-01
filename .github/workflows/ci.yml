@@ -19,9 +19,9 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -r requirements-dev.txt
-      - run: python -m unittest discover -s tests -v
-      - run: ruff check api.py biodietix.py utils tests scripts
-      - run: ruff format --check api.py utils/api_auth.py utils/api_config.py utils/api_security.py tests scripts
+      - run: python -m pytest
+      - run: ruff check .
+      - run: ruff format --check .
       - run: python -m compileall -q api.py biodietix.py utils tests scripts
       - run: python -m scripts.validate_dataset BioDietix_CLEAN.csv
       - run: python -m pip check

@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Privacy Policy for the BioDietix Android application."
+    >
+    <title>Privacy Policy · BioDietix</title>
+    <link
+      rel="canonical"
+      href="https://meliherenn.github.io/biodietix-legal/privacy-policy.html"
+    >
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="brand" href="index.html">BioDietix</a>
+        <ul class="nav-links">
+          <li><a aria-current="page" href="privacy-policy.html">Privacy Policy</a></li>
+          <li><a href="delete-account.html">Account Deletion</a></li>
+          <li><a href="mailto:SUPPORT_EMAIL">Support</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="main-content" class="page">
+      <header class="hero">
+        <p class="eyebrow">BioDietix</p>
+        <h1>Privacy Policy</h1>
+        <p class="lead">
+          This policy explains how BioDietix handles account information,
+          health- and lab-related data, allergy information, product information,
+          and support requests.
+        </p>
+        <div class="meta">
+          <span><strong>Developer:</strong> Melih Eren</span>
+          <span><strong>Effective date:</strong> EFFECTIVE_DATE</span>
+          <span><strong>Contact:</strong> <a href="mailto:SUPPORT_EMAIL">SUPPORT_EMAIL</a></span>
+        </div>
+      </header>
+
+      <aside class="notice" aria-label="Legal review notice">
+        <strong>Legal review required</strong>
+        This page is a publication-ready technical draft, not legal advice or
+        evidence of legal approval. Replace all placeholders and obtain final
+        KVKK/GDPR and Google Play legal review before public submission.
+      </aside>
+
+      <section class="section" id="scope">
+        <h2>1. Scope and developer</h2>
+        <p>
+          BioDietix is an Android nutrition-support application developed by
+          Melih Eren. This policy covers the BioDietix mobile application, its
+          configured production backend, Firebase services used by the app, and
+          this legal website. Privacy questions and rights requests can be sent
+          to <a href="mailto:SUPPORT_EMAIL">SUPPORT_EMAIL</a>.
+        </p>
+        <p>
+          This legal website is static HTML and CSS. It contains no analytics,
+          advertising, tracking scripts, or application-created cookies. GitHub
+          may process normal network and security logs when it hosts the site;
+          those platform operations are governed by GitHub’s own terms and
+          privacy information.
+        </p>
+      </section>
+
+      <section class="section" id="medical-position">
+        <h2>2. Health and medical position</h2>
+        <p>
+          BioDietix handles information that may be sensitive, including blood
+          test values, body measurements, and allergies. BioDietix is not a
+          medical device and does not diagnose, treat, cure, or prevent disease
+          or any medical condition. Its results are supportive nutrition
+          information based on user-provided and available product data.
+        </p>
+        <p>
+          Users should consult a qualified doctor, laboratory professional, or
+          dietitian for medical advice, interpretation of abnormal results,
+          allergy concerns, symptoms, supplement or medication decisions, and
+          major dietary changes.
+        </p>
+      </section>
+
+      <section class="section" id="data-handled">
+        <h2>3. Information BioDietix may handle</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Category</th>
+                <th scope="col">Examples</th>
+                <th scope="col">How it is used</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Account and authentication</td>
+                <td>Firebase user ID, email address, and Google Sign-In provider data</td>
+                <td>Sign-up, sign-in, account security, and user-scoped data access</td>
+              </tr>
+              <tr>
+                <td>Profile and body information</td>
+                <td>Age, sex/gender field, height, weight, BMI, and optional profile photo</td>
+                <td>Build and retain the user’s nutrition-support profile</td>
+              </tr>
+              <tr>
+                <td>Health and laboratory information</td>
+                <td>Uploaded blood test PDF content, extracted lab values, and derived indicators</td>
+                <td>Analyze supported values and provide conservative nutrition context</td>
+              </tr>
+              <tr>
+                <td>Allergy information</td>
+                <td>Manual allergy entries and possible sensitization signals extracted from reports</td>
+                <td>Identify possible product conflicts and show allergy cautions</td>
+              </tr>
+              <tr>
+                <td>Product activity</td>
+                <td>Barcodes, nutrition labels, ingredients, saved checks, notes, and suitability results</td>
+                <td>Look up products and explain product-profile signals</td>
+              </tr>
+              <tr>
+                <td>Support and deletion requests</td>
+                <td>Email address, request details, verification correspondence, and request status</td>
+                <td>Respond to support, privacy, and deletion requests</td>
+              </tr>
+              <tr>
+                <td>Security and operational metadata</td>
+                <td>Request identifiers, timestamps, authentication/App Check status, and error type</td>
+                <td>Protect the service, prevent abuse, and diagnose technical failures without intentionally logging health payloads</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="processing">
+        <h2>4. How information is processed</h2>
+
+        <h3>Uploaded blood test and allergy PDFs</h3>
+        <p>
+          When a user chooses to upload a report, the file is transmitted over
+          an encrypted HTTPS connection to the configured production backend.
+          The backend may extract supported laboratory values or allergy-related
+          text. Application code is designed to use temporary files and remove
+          them after processing, including on failures; BioDietix does not
+          intentionally keep the uploaded PDF as a permanent user document.
+          Derived values and profile indicators may be stored separately on the
+          device and in the user’s Firebase profile.
+        </p>
+
+        <h3>Firebase Authentication and account storage</h3>
+        <p>
+          BioDietix may use Firebase Authentication for email/password and Google
+          Sign-In. If enabled by app functionality, profile data, derived report
+          results, allergy information, saved product checks, and an optional
+          profile photo may be stored in user-scoped Cloud Firestore or Firebase
+          Storage paths. Firebase and Google may process authentication, device,
+          integrity, and service metadata needed to provide and secure these
+          services.
+        </p>
+
+        <h3>Local device storage</h3>
+        <p>
+          Some account, profile, allergy, derived lab, product, language, and
+          theme data may be cached locally so the app can preserve state and show
+          previously saved information. Sensitive app data is intended to use an
+          encrypted local Hive store with key material protected by platform
+          secure storage. Clearing app data, using the in-app deletion controls,
+          or uninstalling the app affects local data as described by the device
+          operating system. Signing out alone should not be treated as guaranteed
+          deletion of all cached data.
+        </p>
+
+        <h3>Open Food Facts product lookup</h3>
+        <p>
+          A product barcode may be sent by the BioDietix backend to Open Food
+          Facts to retrieve product, ingredient, allergen, and nutrition-label
+          information. The product lookup does not need to send the user’s
+          BioDietix account profile or health values to Open Food Facts. Open Food
+          Facts data is community-contributed and may be incomplete, outdated, or
+          inaccurate; users must check the physical package, especially for
+          allergies.
+        </p>
+
+        <h3>Production backend</h3>
+        <p>
+          PDF analysis and product evaluation may occur on the production backend
+          configured in the installed app. The backend verifies authenticated
+          requests and, in production, is intended to require Firebase App Check.
+          The production operator must separately verify hosting location,
+          subprocessors, security controls, backup behavior, and operational log
+          retention before Play Store submission.
+        </p>
+      </section>
+
+      <section class="section" id="purposes">
+        <h2>5. Purposes and legal basis</h2>
+        <p>BioDietix processes information only for purposes such as:</p>
+        <ul>
+          <li>providing authentication and user-requested app functionality;</li>
+          <li>processing reports and producing supportive nutrition information;</li>
+          <li>saving and synchronizing a user’s profile and product checks;</li>
+          <li>detecting allergy conflicts and explaining incomplete product data;</li>
+          <li>protecting accounts, preventing abuse, and maintaining service security;</li>
+          <li>responding to support, privacy, and deletion requests; and</li>
+          <li>meeting applicable legal obligations.</li>
+        </ul>
+        <p>
+          Depending on the user’s location and the final legal analysis, processing
+          may rely on performance of a user-requested service, explicit consent for
+          health or special-category data, legitimate security interests, or legal
+          obligations. Users are asked for consent before a selected health report
+          is uploaded. The final lawful-basis wording must be approved by counsel.
+        </p>
+      </section>
+
+      <section class="section" id="sharing">
+        <h2>6. Service providers, disclosure, and sale</h2>
+        <p>
+          Information may be processed by service providers needed to operate the
+          app, including Google/Firebase, the configured backend hosting provider,
+          GitHub for this static website, and Open Food Facts for barcode product
+          lookup. Data may also be disclosed when required by applicable law or
+          necessary to protect users, the service, or legal rights.
+        </p>
+        <p>
+          <strong>BioDietix does not sell personal data or sensitive health data.</strong>
+          BioDietix does not use health or allergy data for targeted advertising.
+          Final Google Play “collected” and “shared” declarations must reflect the
+          actual production services, contracts, SDK behavior, and Play definitions.
+        </p>
+      </section>
+
+      <section class="section" id="retention">
+        <h2>7. Retention</h2>
+        <ul>
+          <li>
+            Account and cloud profile information may remain while the account is
+            active and until it is deleted or no longer needed for the stated purpose.
+          </li>
+          <li>
+            Uploaded PDFs are intended for transient processing and are not
+            intentionally retained by application code after the request completes.
+          </li>
+          <li>
+            Local cached information may remain until the user deletes it, clears
+            app storage, or uninstalls the app, subject to operating-system behavior.
+          </li>
+          <li>
+            Limited security, abuse-prevention, legal/compliance, and deletion-request
+            records may be retained only as long as reasonably necessary or legally required.
+          </li>
+          <li>
+            Provider backups and security logs may expire according to verified
+            provider retention cycles and may not be erased immediately from every backup copy.
+          </li>
+        </ul>
+        <p>
+          Concrete production retention periods and transfer locations require
+          final operator and legal confirmation before publication to Google Play.
+        </p>
+      </section>
+
+      <section class="section" id="security">
+        <h2>8. Security</h2>
+        <p>
+          BioDietix uses controls intended to reduce unauthorized access, including
+          HTTPS transport, authenticated user-scoped cloud paths, Firebase App Check
+          in production, encrypted local profile storage, restricted backend secrets,
+          upload limits, and logging designed not to include health payloads. No
+          internet or storage system can be guaranteed completely secure.
+        </p>
+        <p>
+          Security or privacy concerns can be reported to
+          <a href="mailto:SUPPORT_EMAIL">SUPPORT_EMAIL</a>. Do not email passwords,
+          authentication tokens, or complete medical reports.
+        </p>
+      </section>
+
+      <section class="section" id="rights">
+        <h2>9. Your privacy rights</h2>
+        <p>
+          Subject to applicable law, including KVKK or GDPR-style rights where
+          applicable, users may request information about processing, access to
+          their data, correction of inaccurate data, deletion, restriction or
+          objection, portability, or withdrawal of consent. Withdrawal does not
+          affect processing that was lawful before withdrawal and may prevent
+          health-report features from operating.
+        </p>
+        <p>
+          To exercise a right, email <a href="mailto:SUPPORT_EMAIL">SUPPORT_EMAIL</a>
+          from the address associated with the account and describe the request.
+          BioDietix may request proportionate information to verify account ownership
+          but will not ask for the account password. Users may also have the right
+          to complain to the Turkish Personal Data Protection Authority or another
+          competent supervisory authority. Exact rights, deadlines, controller
+          identity, and complaint routes require final legal review.
+        </p>
+      </section>
+
+      <section class="section" id="deletion">
+        <h2>10. Account and data deletion</h2>
+        <p>
+          Users can start deletion in the app through <strong>Settings → Delete account</strong>
+          or use the public
+          <a href="https://meliherenn.github.io/biodietix-legal/delete-account.html">account deletion page</a>
+          without reinstalling the app. See that page for the current scope,
+          identity-verification process, local-device limitations, and possible
+          temporary retention.
+        </p>
+      </section>
+
+      <section class="section" id="children">
+        <h2>11. Children</h2>
+        <p>
+          BioDietix is designed for adults and is not validated for pediatric
+          nutrition. It is not intended to knowingly collect children’s health data.
+          Contact <a href="mailto:SUPPORT_EMAIL">SUPPORT_EMAIL</a> if you believe a
+          child’s data has been provided so the matter can be reviewed and handled
+          according to applicable law.
+        </p>
+      </section>
+
+      <section class="section" id="changes">
+        <h2>12. Changes and contact</h2>
+        <p>
+          This policy may be updated when BioDietix functionality, providers, or
+          legal requirements change. The effective date at the top will be updated
+          for a new version. Material changes requiring consent will be handled as
+          required by applicable law.
+        </p>
+        <p>
+          Developer: Melih Eren<br>
+          Email: <a href="mailto:SUPPORT_EMAIL">SUPPORT_EMAIL</a><br>
+          Privacy URL:
+          <a href="https://meliherenn.github.io/biodietix-legal/privacy-policy.html">https://meliherenn.github.io/biodietix-legal/privacy-policy.html</a>
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <p>BioDietix · Developer: Melih Eren</p>
+        <p><a href="delete-account.html">Account Deletion</a></p>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -15,6 +15,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('AppConfig validates release links and support email', () {
+    expect(
+      AppConfig.httpsUri('https://example.com/privacy')?.host,
+      'example.com',
+    );
+    expect(AppConfig.httpsUri('http://example.com/privacy'), isNull);
+    expect(AppConfig.httpsUri('not-a-url'), isNull);
+    expect(AppConfig.supportEmailUri('support@example.com')?.scheme, 'mailto');
+    expect(AppConfig.supportEmailUri('not-an-email'), isNull);
+  });
+
   testWidgets('Onboarding shows first page and primary action', (
     WidgetTester tester,
   ) async {
@@ -55,7 +66,13 @@ void main() {
     WidgetTester tester,
   ) async {
     final store = HiveLocalStore();
-    const config = AppConfig(flavor: AppFlavor.dev, apiUrl: '');
+    const config = AppConfig(
+      flavor: AppFlavor.dev,
+      apiUrl: '',
+      privacyPolicyUrl: 'https://example.com/privacy',
+      accountDeletionUrl: 'https://example.com/delete-account',
+      supportEmail: 'support@example.com',
+    );
 
     await tester.pumpWidget(
       AppScope(
@@ -114,5 +131,17 @@ void main() {
     expect(find.text('System'), findsOneWidget);
     expect(find.text('Light'), findsOneWidget);
     expect(find.text('Dark'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Request account deletion'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Privacy policy'), findsOneWidget);
+    expect(find.text('Request account deletion'), findsOneWidget);
+    expect(find.text('Contact support'), findsOneWidget);
+    expect(find.text('Delete account'), findsOneWidget);
   });
 }
