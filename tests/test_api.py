@@ -1,10 +1,15 @@
 import unittest
+from unittest.mock import patch
 
+import numpy as np
+import pandas as pd
 from fastapi.testclient import TestClient
 
 from api import app
+from biodietix import PDFParsingError
 from utils.api_auth import require_user
 from utils.api_config import APISettings, get_api_settings
+from utils.biodietix_web import BioDietixPDFError
 
 
 class APISecurityTests(unittest.TestCase):
@@ -110,6 +115,86 @@ class APISecurityTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.headers["X-Request-ID"], "contains spaces")
+
+    def test_blood_expected_parser_error_is_422_with_request_id(self):
+        app.dependency_overrides[require_user] = lambda: {"uid": "test-user"}
+        with patch("api.analyze_pdf_file", side_effect=BioDietixPDFError("sensitive")):
+            response = self.client.post(
+                "/v1/analyze/blood-pdf",
+                files={"file": ("report.pdf", b"%PDF-1.7\n%%EOF", "application/pdf")},
+                headers={"X-Request-ID": "blood-422"},
+            )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["detail"], "Blood PDF could not be parsed.")
+        self.assertEqual(response.headers["X-Request-ID"], "blood-422")
+        self.assertNotIn("sensitive", response.text)
+
+    def test_blood_unexpected_parser_error_is_500_with_request_id(self):
+        app.dependency_overrides[require_user] = lambda: {"uid": "test-user"}
+        with patch("api.analyze_pdf_file", side_effect=RuntimeError("sensitive")):
+            response = self.client.post(
+                "/v1/analyze/blood-pdf",
+                files={"file": ("report.pdf", b"%PDF-1.7\n%%EOF", "application/pdf")},
+                headers={"X-Request-ID": "blood-500"},
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json()["detail"], "Blood PDF analysis failed.")
+        self.assertEqual(response.headers["X-Request-ID"], "blood-500")
+        self.assertNotIn("sensitive", response.text)
+
+    def test_allergy_expected_parser_error_is_422(self):
+        app.dependency_overrides[require_user] = lambda: {"uid": "test-user"}
+        with patch("api.extract_allergies_from_pdf_file", side_effect=PDFParsingError("detail")):
+            response = self.client.post(
+                "/v1/analyze/allergy-pdf",
+                files={"file": ("report.pdf", b"%PDF-1.7\n%%EOF", "application/pdf")},
+                headers={"X-Request-ID": "allergy-422"},
+            )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["detail"], "Allergy PDF could not be parsed.")
+        self.assertEqual(response.headers["X-Request-ID"], "allergy-422")
+
+    def test_allergy_unexpected_parser_error_is_500(self):
+        app.dependency_overrides[require_user] = lambda: {"uid": "test-user"}
+        with patch("api.extract_allergies_from_pdf_file", side_effect=RuntimeError("detail")):
+            response = self.client.post(
+                "/v1/analyze/allergy-pdf",
+                files={"file": ("report.pdf", b"%PDF-1.7\n%%EOF", "application/pdf")},
+                headers={"X-Request-ID": "allergy-500"},
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json()["detail"], "Allergy PDF analysis failed.")
+        self.assertEqual(response.headers["X-Request-ID"], "allergy-500")
+
+    def test_blood_numpy_scalars_are_json_serialized(self):
+        app.dependency_overrides[require_user] = lambda: {"uid": "test-user"}
+        analyzed = pd.DataFrame(
+            [
+                {
+                    "Health_Profile": "No Flagged Risk in Available Data",
+                    "Nutrition_Recommendation": "",
+                    "Foods_To_Increase": "",
+                    "Foods_To_Limit": "",
+                }
+            ]
+        )
+        with patch(
+            "api.analyze_pdf_file",
+            return_value=(analyzed, {"Age": np.int64(30)}, ""),
+        ):
+            response = self.client.post(
+                "/v1/analyze/blood-pdf",
+                files={"file": ("report.pdf", b"%PDF-1.7\n%%EOF", "application/pdf")},
+                headers={"X-Request-ID": "blood-numpy-json"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["extracted_values"]["Age"], 30)
+        self.assertEqual(response.headers["X-Request-ID"], "blood-numpy-json")
 
 
 if __name__ == "__main__":

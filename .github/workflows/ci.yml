@@ -41,7 +41,7 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
-      - run: flutter build apk --debug --flavor dev --dart-define=FLAVOR=dev
+      - run: flutter build apk --debug --flavor dev --dart-define=FLAVOR=dev --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 
   dependency-audit:
     runs-on: ubuntu-latest

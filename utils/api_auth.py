@@ -2,7 +2,7 @@ import json
 import logging
 import os
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from utils.api_config import APISettings, get_api_settings
@@ -42,14 +42,18 @@ def _verify_app_check_token(token):
 
 
 def require_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(BEARER),
     app_check_token: str | None = Header(default=None, alias="X-Firebase-AppCheck"),
     settings: APISettings = Depends(get_api_settings),
 ):
+    safe_request_id = getattr(request.state, "request_id", "missing")
     if not settings.auth_required:
+        LOGGER.info("auth_bypassed request_id=%s", safe_request_id)
         return {"uid": "local-development", "auth_disabled": True}
 
     if credentials is None or credentials.scheme.lower() != "bearer":
+        LOGGER.warning("auth_missing request_id=%s", safe_request_id)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required.",
@@ -62,13 +66,31 @@ def require_user(
             check_revoked=settings.firebase_check_revoked,
         )
     except RuntimeError as exc:
-        LOGGER.error("firebase_authentication_unavailable error_type=%s", type(exc).__name__)
+        LOGGER.error(
+            "firebase_authentication_unavailable request_id=%s error_type=%s",
+            safe_request_id,
+            type(exc).__name__,
+        )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Authentication service unavailable.",
         ) from exc
     except Exception as exc:
-        LOGGER.warning("Firebase token verification failed: %s", type(exc).__name__)
+        if type(exc).__name__ == "CertificateFetchError":
+            LOGGER.error(
+                "firebase_authentication_unavailable request_id=%s error_type=%s",
+                safe_request_id,
+                type(exc).__name__,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Authentication service unavailable.",
+            ) from exc
+        LOGGER.warning(
+            "firebase_auth_invalid request_id=%s error_type=%s",
+            safe_request_id,
+            type(exc).__name__,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired authentication token.",
@@ -83,22 +105,42 @@ def require_user(
         )
     if settings.app_check_required:
         if not app_check_token:
+            LOGGER.warning("app_check_missing request_id=%s", safe_request_id)
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail="App attestation required.",
             )
         try:
             _verify_app_check_token(app_check_token)
         except RuntimeError as exc:
-            LOGGER.error("firebase_app_check_unavailable error_type=%s", type(exc).__name__)
+            LOGGER.error(
+                "firebase_app_check_unavailable request_id=%s error_type=%s",
+                safe_request_id,
+                type(exc).__name__,
+            )
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="App attestation service unavailable.",
             ) from exc
         except Exception as exc:
-            LOGGER.warning("Firebase App Check verification failed: %s", type(exc).__name__)
+            if type(exc).__name__ == "PyJWKClientError":
+                LOGGER.error(
+                    "firebase_app_check_key_service_unavailable request_id=%s error_type=%s",
+                    safe_request_id,
+                    type(exc).__name__,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="App attestation service unavailable.",
+                ) from exc
+            LOGGER.warning(
+                "firebase_app_check_invalid request_id=%s error_type=%s",
+                safe_request_id,
+                type(exc).__name__,
+            )
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail="Invalid app attestation token.",
             ) from exc
+    LOGGER.info("auth_and_app_check_verified request_id=%s", safe_request_id)
     return decoded

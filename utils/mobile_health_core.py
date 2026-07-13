@@ -255,7 +255,7 @@ def _to_number(value):
         return None
 
 
-def _json_safe(value):
+def json_safe_value(value):
     if value is None:
         return None
     if isinstance(value, float) and pd.isna(value):
@@ -369,20 +369,20 @@ def build_profile_memory(results, allergies=None, extracted_values=None):
     risk_levels = {}
     for column in results.columns:
         if column.endswith("_Risk_Level") or column in {"Age_Group", "Age_Risk_Level"}:
-            value = _json_safe(row.get(column))
+            value = json_safe_value(row.get(column))
             if value not in (None, ""):
                 risk_levels[column] = value
 
     personal_info = {}
     for column in ["Patient_ID", "Gender", "Age", "Weight_kg", "Height_cm", "BMI"]:
         if column in results.columns:
-            value = _json_safe(row.get(column))
+            value = json_safe_value(row.get(column))
             if value not in (None, ""):
                 personal_info[column] = value
 
     lab_values = {}
     for key, value in (extracted_values or {}).items():
-        safe_value = _json_safe(value)
+        safe_value = json_safe_value(value)
         if safe_value not in (None, ""):
             lab_values[key] = safe_value
 
@@ -413,9 +413,9 @@ def build_profile_memory(results, allergies=None, extracted_values=None):
         "foods_to_limit": _list_from_csv_text(row.get("Foods_To_Limit")),
         "risk_levels": risk_levels,
         "data_quality": {
-            "status": _json_safe(row.get("Data_Quality_Status")),
-            "observed_lab_count": _json_safe(row.get("Observed_Lab_Count")),
-            "observed_lab_domains": _json_safe(row.get("Observed_Lab_Domains")),
+            "status": json_safe_value(row.get("Data_Quality_Status")),
+            "observed_lab_count": json_safe_value(row.get("Observed_Lab_Count")),
+            "observed_lab_domains": json_safe_value(row.get("Observed_Lab_Domains")),
             "interpretation_warnings": interpretation_warnings,
         },
         "lab_values": lab_values,

@@ -170,24 +170,26 @@ class ProfileCubit extends Cubit<ProfileState> {
     final current = state;
     if (uid == null || current is! ProfileLoaded) return;
 
-    final updated = current.copyWith(
-      profileMemory: profileMemory,
-      allergies: profileMemory.allergies,
-      extractedValues: extractedValues,
-      saving: true,
-      clearError: true,
-      clearNotice: true,
-    );
-    emit(updated);
+    emit(current.copyWith(saving: true, clearError: true, clearNotice: true));
     try {
       await _repository.saveProfileMemory(
         uid: uid,
         profileMemory: profileMemory,
         extractedValues: extractedValues,
       );
-      emit(updated.copyWith(saving: false, notice: 'bloodAnalyzed'));
+      emit(
+        current.copyWith(
+          profileMemory: profileMemory,
+          allergies: profileMemory.allergies,
+          extractedValues: extractedValues,
+          saving: false,
+          notice: 'bloodAnalyzed',
+          clearError: true,
+        ),
+      );
     } catch (error) {
-      emit(updated.copyWith(saving: false, error: error.toString()));
+      emit(current.copyWith(saving: false, error: error.toString()));
+      rethrow;
     }
   }
 
@@ -195,24 +197,26 @@ class ProfileCubit extends Cubit<ProfileState> {
     final uid = _uid;
     final current = state;
     if (uid == null || current is! ProfileLoaded) return;
-    final memory = current.profileMemory?.copyWithAllergies(allergies);
-    final updated = current.copyWith(
-      allergies: allergies,
-      profileMemory: memory,
-      saving: true,
-      clearError: true,
-      clearNotice: true,
-    );
-    emit(updated);
+    final memory = (current.profileMemory ?? ProfileMemory.fromJson(const {}))
+        .copyWithAllergies(allergies);
+    emit(current.copyWith(saving: true, clearError: true, clearNotice: true));
     try {
       await _repository.saveAllergies(
         uid: uid,
         allergies: allergies,
-        profileMemory: current.profileMemory,
+        profileMemory: memory,
       );
-      emit(updated.copyWith(saving: false));
+      emit(
+        current.copyWith(
+          allergies: allergies,
+          profileMemory: memory,
+          saving: false,
+          clearError: true,
+        ),
+      );
     } catch (error) {
-      emit(updated.copyWith(saving: false, error: error.toString()));
+      emit(current.copyWith(saving: false, error: error.toString()));
+      rethrow;
     }
   }
 

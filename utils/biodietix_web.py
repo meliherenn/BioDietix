@@ -5,6 +5,7 @@ import pandas as pd
 
 from biodietix import (
     PDF_LAB_DOMAINS,
+    PDFParsingError,
     analyze_pdf_report,
     apply_risk_engine,
     create_health_profile,
@@ -320,12 +321,8 @@ def analyze_pdf_file(file_or_path, gender="Female", age=22, weight_kg=None, heig
             weight_kg=weight_kg,
             height_cm=height_cm,
         )
-    except ImportError as exc:
-        raise BioDietixPDFError(str(exc)) from exc
-    except FileNotFoundError as exc:
-        raise BioDietixPDFError("PDF dosyasi bulunamadi.") from exc
-    except Exception as exc:
-        raise BioDietixPDFError(f"PDF okunamadi: {exc}") from exc
+    except PDFParsingError as exc:
+        raise BioDietixPDFError("PDF okunamadi veya desteklenmiyor.") from exc
     finally:
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()

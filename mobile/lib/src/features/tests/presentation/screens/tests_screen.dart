@@ -1,19 +1,19 @@
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/diagnostics/safe_diagnostics.dart';
 import '../../../../core/widgets/ui.dart';
 import '../../../../i18n.dart';
 import '../../../../models/profile_memory.dart';
 import '../../../../services/biodietix_api.dart';
+import '../../../../services/pdf_upload_source.dart';
 import '../../../profile/presentation/cubit/profile_cubit.dart';
 
 class TestsScreen extends StatefulWidget {
-  const TestsScreen({required this.apiUrl, super.key});
+  const TestsScreen({required this.apiUrl, this.pdfPicker, super.key});
 
   final String apiUrl;
+  final PdfPickerService? pdfPicker;
 
   @override
   State<TestsScreen> createState() => _TestsScreenState();
@@ -23,7 +23,16 @@ class _TestsScreenState extends State<TestsScreen> {
   var _busy = false;
   String? _preview;
 
+  PdfPickerService get _pdfPicker => widget.pdfPicker ?? PdfPickerService();
+
   bool get _serverReady => BioDietixApi.isConfiguredUrl(widget.apiUrl);
+
+  String _errorMessage(AppStrings strings, Object error) {
+    if (error is BioDietixApiException) {
+      return strings.t(error.localizationKey);
+    }
+    return strings.t('apiRequestFailedError');
+  }
 
   Future<void> _openPreviewSheet(String preview) async {
     final strings = AppScope.of(context).strings;
@@ -69,15 +78,45 @@ class _TestsScreenState extends State<TestsScreen> {
     );
   }
 
-  Future<File?> _pickPdf() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      withData: false,
+  Future<PdfUploadSource?> _pickPdf({
+    required String operation,
+    required String requestId,
+  }) async {
+    safeDebugLog(
+      'pdf_upload',
+      'picker_opened',
+      requestId: requestId,
+      fields: {'operation': operation},
     );
-    final path = result?.files.single.path;
-    if (path == null) return null;
-    return File(path);
+    final selected = await _pdfPicker.pickPdf();
+    safeDebugLog(
+      'pdf_upload',
+      'picker_returned',
+      requestId: requestId,
+      fields: {'operation': operation, 'has_result': selected != null},
+    );
+    if (selected == null) {
+      safeDebugLog(
+        'pdf_upload',
+        'picker_cancelled',
+        requestId: requestId,
+        fields: {'operation': operation},
+      );
+      return null;
+    }
+    safeDebugLog(
+      'pdf_upload',
+      'file_selected',
+      requestId: requestId,
+      fields: {
+        'operation': operation,
+        'filename': selected.safeNameForLog,
+        'reported_size': selected.size,
+        'path_present': selected.hasPath,
+        'bytes_present': selected.hasBytes,
+      },
+    );
+    return selected;
   }
 
   Future<bool> _confirmHealthUpload() async {
@@ -104,22 +143,29 @@ class _TestsScreenState extends State<TestsScreen> {
 
   Future<void> _uploadBloodPdf(ProfileLoaded profile) async {
     final strings = AppScope.of(context).strings;
+    final requestId = BioDietixApi.newRequestId();
+    safeDebugLog(
+      'pdf_upload',
+      'button_pressed',
+      requestId: requestId,
+      fields: {'operation': 'blood_pdf'},
+    );
     if (!_serverReady) {
       showAppSnack(context, strings.t('serverNotConfigured'));
       return;
     }
 
     final profileCubit = context.read<ProfileCubit>();
-    if (!await _confirmHealthUpload() || !mounted) return;
-    final file = await _pickPdf();
-    if (file == null) return;
-
-    setState(() => _busy = true);
     try {
+      if (!await _confirmHealthUpload() || !mounted) return;
+      final pdf = await _pickPdf(operation: 'blood_pdf', requestId: requestId);
+      if (pdf == null || !mounted) return;
+      setState(() => _busy = true);
       final result = await BioDietixApi(widget.apiUrl).analyzeBloodPdf(
-        file: file,
+        pdf: pdf,
         personalInfo: profile.personalInfo,
         allergies: profile.allergies,
+        requestId: requestId,
       );
       await profileCubit.saveProfileMemory(
         profileMemory: result.profileMemory,
@@ -127,9 +173,24 @@ class _TestsScreenState extends State<TestsScreen> {
       );
       setState(() => _preview = result.textPreview);
       if (mounted) showAppSnack(context, strings.t('bloodAnalyzed'));
-    } catch (error) {
+    } on Object catch (error, stackTrace) {
+      safeDebugError(
+        'pdf_upload',
+        'flow_failed',
+        error,
+        stackTrace,
+        requestId: requestId,
+        errorCode: error is BioDietixApiException
+            ? error.code.name
+            : error is PdfSourceException
+            ? error.code.name
+            : null,
+      );
       if (mounted) {
-        showAppSnack(context, '${strings.t('bloodPdfFailed')}: $error');
+        showAppSnack(
+          context,
+          '${strings.t('bloodPdfFailed')}: ${_errorMessage(strings, error)}',
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -138,19 +199,30 @@ class _TestsScreenState extends State<TestsScreen> {
 
   Future<void> _uploadAllergyPdf(ProfileLoaded profile) async {
     final strings = AppScope.of(context).strings;
+    final requestId = BioDietixApi.newRequestId();
+    safeDebugLog(
+      'pdf_upload',
+      'button_pressed',
+      requestId: requestId,
+      fields: {'operation': 'allergy_pdf'},
+    );
     if (!_serverReady) {
       showAppSnack(context, strings.t('serverNotConfigured'));
       return;
     }
 
     final profileCubit = context.read<ProfileCubit>();
-    if (!await _confirmHealthUpload() || !mounted) return;
-    final file = await _pickPdf();
-    if (file == null) return;
-
-    setState(() => _busy = true);
     try {
-      final result = await BioDietixApi(widget.apiUrl).analyzeAllergyPdf(file);
+      if (!await _confirmHealthUpload() || !mounted) return;
+      final pdf = await _pickPdf(
+        operation: 'allergy_pdf',
+        requestId: requestId,
+      );
+      if (pdf == null || !mounted) return;
+      setState(() => _busy = true);
+      final result = await BioDietixApi(
+        widget.apiUrl,
+      ).analyzeAllergyPdf(pdf, requestId: requestId);
       final next = {...profile.allergies, ...result.allergies}.toList();
       await profileCubit.saveAllergies(next);
       setState(() => _preview = result.textPreview);
@@ -160,9 +232,24 @@ class _TestsScreenState extends State<TestsScreen> {
           '${result.allergies.length} ${strings.t('allergySignalsDetected')}',
         );
       }
-    } catch (error) {
+    } on Object catch (error, stackTrace) {
+      safeDebugError(
+        'pdf_upload',
+        'flow_failed',
+        error,
+        stackTrace,
+        requestId: requestId,
+        errorCode: error is BioDietixApiException
+            ? error.code.name
+            : error is PdfSourceException
+            ? error.code.name
+            : null,
+      );
       if (mounted) {
-        showAppSnack(context, '${strings.t('allergyPdfFailed')}: $error');
+        showAppSnack(
+          context,
+          '${strings.t('allergyPdfFailed')}: ${_errorMessage(strings, error)}',
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
