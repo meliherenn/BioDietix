@@ -114,6 +114,10 @@ def enrich_anthropometrics(data):
     return data
 
 
+class PDFParsingError(ValueError):
+    """Raised for expected invalid, unreadable, or over-limit PDF input."""
+
+
 def extract_pdf_text(pdf_path, max_pages=None, max_text_chars=None):
     try:
         import pdfplumber
@@ -128,16 +132,21 @@ def extract_pdf_text(pdf_path, max_pages=None, max_text_chars=None):
     text_parts = []
     text_length = 0
 
-    with pdfplumber.open(pdf_path) as pdf:
-        if len(pdf.pages) > max_pages:
-            raise ValueError(f"PDF page count exceeds the {max_pages}-page limit.")
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text_length += len(page_text) + 1
-                if text_length > max_text_chars:
-                    raise ValueError("Extracted PDF text exceeds the processing limit.")
-                text_parts.append(page_text)
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            if len(pdf.pages) > max_pages:
+                raise PDFParsingError("PDF page count exceeds the processing limit.")
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text_length += len(page_text) + 1
+                    if text_length > max_text_chars:
+                        raise PDFParsingError("Extracted PDF text exceeds the processing limit.")
+                    text_parts.append(page_text)
+    except PDFParsingError:
+        raise
+    except Exception as exc:
+        raise PDFParsingError("PDF could not be read.") from exc
 
     return "\n".join(text_parts)
 

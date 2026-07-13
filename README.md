@@ -169,11 +169,19 @@ cd mobile
 flutter pub get
 ```
 
-Geliştirme modunda çalıştırın:
+Geliştirme modunda App Check debug provider ile çalıştırın:
 
 ```bash
-flutter run --flavor dev --dart-define=FLAVOR=dev
+flutter run --flavor dev \
+  --dart-define=FLAVOR=dev \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
+
+İlk korumalı API çağrısında Android logcat'te `DebugAppCheckProvider` tarafından
+üretilen debug secret görünür. Değeri source control'e veya build komutuna yazmadan
+Firebase Console → App Check → Android app → Manage debug tokens altında
+kaydedin. Log satırını görmek için `adb logcat | grep DebugAppCheckProvider`
+kullanın; token'ı yalnız Firebase Console'a girin.
 
 Yerel backend kullanmak için Android emülatörde `10.0.2.2` adresini kullanın:
 
@@ -181,7 +189,8 @@ Yerel backend kullanmak için Android emülatörde `10.0.2.2` adresini kullanın
 flutter run \
   --flavor dev \
   --dart-define=FLAVOR=dev \
-  --dart-define=BIODIETIX_API_URL=http://10.0.2.2:8000
+  --dart-define=BIODIETIX_API_URL=http://10.0.2.2:8000 \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
 Release APK üretin (gerçek yayın URL'lerini ve izlenen destek adresini kullanın):
@@ -192,7 +201,8 @@ flutter build apk --release --flavor prod \
   --dart-define=BIODIETIX_API_URL=https://YOUR_PRODUCTION_API_HOST \
   --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://YOUR_PUBLIC_PRIVACY_POLICY \
   --dart-define=BIODIETIX_ACCOUNT_DELETION_URL=https://YOUR_PUBLIC_DELETION_PAGE \
-  --dart-define=BIODIETIX_SUPPORT_EMAIL=YOUR_MONITORED_SUPPORT_EMAIL
+  --dart-define=BIODIETIX_SUPPORT_EMAIL=YOUR_MONITORED_SUPPORT_EMAIL \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
 App Check kapalı kontrollü sideload testi yalnızca `dev` flavor ve App Check'i
@@ -211,10 +221,15 @@ APK çıktısı:
 mobile/build/app/outputs/flutter-apk/app-prod-release.apk
 ```
 
-Bağlı cihaza kurulum:
+Prod release APK yalnız imza/statik inceleme içindir. Play Integrity kullanan
+prod APK'yı `adb install` ile sideload ederek PDF/App Check akışını doğrulamayın;
+Play tarafından lisanslanan/tanınan kurulum sinyali oluşmayabilir. Uçtan uca
+doğrulama için aşağıdaki AAB'yi Internal Testing'e yükleyip Play'den kurun.
+
+Dev debug APK'yı bağlı cihaza kurmak için:
 
 ```bash
-adb install -r mobile/build/app/outputs/flutter-apk/app-prod-release.apk
+adb install -r mobile/build/app/outputs/flutter-apk/app-dev-debug.apk
 ```
 
 Play Store için App Bundle:

@@ -4,7 +4,7 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 
-from biodietix import create_health_profile, summarize_pdf_lab_coverage
+from biodietix import PDFParsingError, create_health_profile, summarize_pdf_lab_coverage
 from utils.biodietix_web import BioDietixPDFError, analyze_pdf_file
 
 
@@ -44,6 +44,24 @@ class PDFSafetyTests(unittest.TestCase):
         )
         self.assertEqual(limited["Data_Quality_Status"], "limited")
         self.assertEqual(sufficient["Data_Quality_Status"], "sufficient_for_screening")
+
+    def test_unexpected_analyzer_error_is_not_mislabeled_as_invalid_pdf(self):
+        with patch(
+            "utils.biodietix_web.analyze_pdf_report",
+            side_effect=RuntimeError("internal-sensitive-detail"),
+        ):
+            with self.assertRaises(RuntimeError):
+                analyze_pdf_file("unused.pdf")
+
+    def test_expected_parser_error_has_a_safe_domain_message(self):
+        with patch(
+            "utils.biodietix_web.analyze_pdf_report",
+            side_effect=PDFParsingError("internal-sensitive-detail"),
+        ):
+            with self.assertRaises(BioDietixPDFError) as raised:
+                analyze_pdf_file("unused.pdf")
+
+        self.assertNotIn("sensitive", str(raised.exception))
 
 
 if __name__ == "__main__":

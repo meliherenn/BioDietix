@@ -380,6 +380,29 @@ const _values = {
     'allergySignalsDetected': 'allergy signal(s) detected.',
     'serverNotConfigured':
         'BioDietix cloud service is temporarily unavailable.',
+    'apiAuthenticationError': 'Your session has expired. Please sign in again.',
+    'apiNetworkError':
+        'The server could not be reached. Check your connection and try again.',
+    'apiTimeoutError': 'The request timed out. Please try again.',
+    'appCheckConfigurationError':
+        'This app build could not be verified because its Firebase configuration is incomplete.',
+    'appCheckNetworkError':
+        'App verification could not reach Firebase. Check your connection and try again.',
+    'appCheckAttestationError':
+        'This installation could not be verified. Install the production app from Google Play, or register the development debug token.',
+    'appCheckUnavailableError':
+        'App verification is temporarily unavailable. Please try again.',
+    'appCheckRejectedError':
+        'The server rejected app verification. Update or reinstall the app from its official source.',
+    'pdfFileReadError':
+        'The selected PDF could not be read. Choose the file again or copy it to Downloads.',
+    'pdfValidationError':
+        'The PDF could not be processed. Check that it is a valid, supported report and try again.',
+    'apiServiceUnavailableError':
+        'The BioDietix service is temporarily unavailable. Please try again later.',
+    'apiInvalidResponseError':
+        'The server returned an invalid response. Please try again.',
+    'apiRequestFailedError': 'The request failed. Please try again.',
     'productScanner': 'Product scan',
     'productScannerSubtitle':
         'Scan a barcode and BioDietix will look up the product automatically. Add details manually only when needed.',
@@ -752,6 +775,30 @@ const _values = {
     'allergyPdfFailed': 'Alerji PDF’i başarısız',
     'allergySignalsDetected': 'alerji sinyali bulundu.',
     'serverNotConfigured': 'BioDietix bulut servisine şu anda ulaşılamıyor.',
+    'apiAuthenticationError':
+        'Oturumunun süresi doldu. Lütfen yeniden giriş yap.',
+    'apiNetworkError':
+        'Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene.',
+    'apiTimeoutError': 'İstek zaman aşımına uğradı. Lütfen tekrar dene.',
+    'appCheckConfigurationError':
+        'Firebase yapılandırması eksik olduğu için bu uygulama derlemesi doğrulanamadı.',
+    'appCheckNetworkError':
+        'Uygulama doğrulaması Firebase’e ulaşamadı. Bağlantını kontrol edip tekrar dene.',
+    'appCheckAttestationError':
+        'Bu kurulum doğrulanamadı. Üretim uygulamasını Google Play’den yükle veya geliştirme debug token’ını kaydet.',
+    'appCheckUnavailableError':
+        'Uygulama doğrulaması geçici olarak kullanılamıyor. Lütfen tekrar dene.',
+    'appCheckRejectedError':
+        'Sunucu uygulama doğrulamasını reddetti. Uygulamayı resmî kaynağından güncelle veya yeniden yükle.',
+    'pdfFileReadError':
+        'Seçilen PDF okunamadı. Dosyayı yeniden seç veya İndirilenler klasörüne kopyala.',
+    'pdfValidationError':
+        'PDF işlenemedi. Geçerli ve desteklenen bir rapor olduğunu kontrol edip tekrar dene.',
+    'apiServiceUnavailableError':
+        'BioDietix servisi geçici olarak kullanılamıyor. Lütfen daha sonra tekrar dene.',
+    'apiInvalidResponseError':
+        'Sunucu geçersiz bir yanıt döndürdü. Lütfen tekrar dene.',
+    'apiRequestFailedError': 'İstek başarısız oldu. Lütfen tekrar dene.',
     'productScanner': 'Ürün tarama',
     'productScannerSubtitle':
         'Barkodu okut; BioDietix ürünü otomatik arasın. Gerekirse manuel ürün bilgisi ekle.',

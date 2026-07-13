@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from biodietix import PDFParsingError
 from utils.api_config import APISettings, get_api_settings
 from utils.api_security import UserRateLimit
 from utils.biodietix_web import BioDietixPDFError, analyze_pdf_file
@@ -23,6 +24,7 @@ from utils.mobile_health_core import (
     build_profile_memory,
     evaluate_product_for_profile,
     extract_allergies_from_pdf_file,
+    json_safe_value,
     lookup_open_food_facts_product,
     normalize_allergies,
 )
@@ -164,6 +166,13 @@ async def request_safety_middleware(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID", "")
     if not re.fullmatch(r"[A-Za-z0-9._:-]{1,100}", request_id):
         request_id = str(uuid4())
+    request.state.request_id = request_id
+    LOGGER.info(
+        "request_received request_id=%s method=%s path=%s",
+        request_id,
+        request.method,
+        request.url.path,
+    )
     content_length = request.headers.get("content-length")
     try:
         json_body_too_large = (
@@ -184,7 +193,17 @@ async def request_safety_middleware(request: Request, call_next):
         return response
 
     started = time.monotonic()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        LOGGER.error(
+            "request_failed request_id=%s path=%s error_type=%s",
+            request_id,
+            request.url.path,
+            type(exc).__name__,
+            exc_info=SETTINGS.environment != "production",
+        )
+        response = JSONResponse(status_code=500, content={"detail": "Internal server error."})
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "no-referrer"
@@ -200,7 +219,7 @@ async def request_safety_middleware(request: Request, call_next):
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(_request: Request, exc: RequestValidationError):
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = [
         {
             "location": [str(part) for part in error.get("loc", ())],
@@ -209,6 +228,8 @@ async def validation_exception_handler(_request: Request, exc: RequestValidation
         }
         for error in exc.errors()
     ]
+    request_id = getattr(request.state, "request_id", "missing")
+    LOGGER.warning("request_validation_failed request_id=%s", request_id)
     return JSONResponse(
         status_code=422,
         content={"detail": "Request validation failed.", "errors": errors},
@@ -217,8 +238,10 @@ async def validation_exception_handler(_request: Request, exc: RequestValidation
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
+    request_id = getattr(request.state, "request_id", "missing")
     LOGGER.error(
-        "unhandled_api_error path=%s error_type=%s",
+        "unhandled_api_error request_id=%s path=%s error_type=%s",
+        request_id,
         request.url.path,
         type(exc).__name__,
         exc_info=SETTINGS.environment != "production",
@@ -246,6 +269,7 @@ def health():
 
 @router.post("/analyze/blood-pdf")
 async def analyze_blood_pdf(
+    request: Request,
     file: UploadFile = File(...),
     gender: str = Form("Female", pattern="^(Female|Male)$"),
     age: int = Form(22, ge=18, le=120),
@@ -255,8 +279,12 @@ async def analyze_blood_pdf(
     _user=Depends(upload_limit),
     settings: APISettings = Depends(get_api_settings),
 ):
-    pdf_path = await save_pdf_upload_to_temp(file, settings)
+    request_id = getattr(request.state, "request_id", "missing")
+    LOGGER.info("pdf_endpoint_enter request_id=%s report_type=blood", request_id)
+    pdf_path = None
     try:
+        pdf_path = await save_pdf_upload_to_temp(file, settings)
+        LOGGER.info("pdf_upload_saved request_id=%s report_type=blood", request_id)
         allergies = parse_allergies_json(allergies_json)
         results_df, extracted_values, extracted_text = await run_in_threadpool(
             analyze_pdf_file,
@@ -271,46 +299,73 @@ async def analyze_blood_pdf(
             allergies=allergies,
             extracted_values=extracted_values,
         )
+        LOGGER.info("pdf_analysis_complete request_id=%s report_type=blood", request_id)
         return {
             "records": dataframe_records(results_df),
-            "extracted_values": extracted_values,
+            "extracted_values": {
+                str(key): json_safe_value(value) for key, value in extracted_values.items()
+            },
             "text_preview": extracted_text[:4000],
             "profile_memory": profile_memory,
         }
     except BioDietixPDFError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        LOGGER.warning(
+            "pdf_analysis_rejected request_id=%s report_type=blood error_type=%s",
+            request_id,
+            type(exc).__name__,
+        )
+        raise HTTPException(status_code=422, detail="Blood PDF could not be parsed.") from exc
     except HTTPException:
         raise
     except Exception as exc:
         LOGGER.error(
-            "blood_pdf_analysis_failed error_type=%s",
+            "blood_pdf_analysis_failed request_id=%s error_type=%s",
+            request_id,
             type(exc).__name__,
             exc_info=SETTINGS.environment != "production",
         )
         raise HTTPException(status_code=500, detail="Blood PDF analysis failed.") from exc
     finally:
-        pdf_path.unlink(missing_ok=True)
+        if pdf_path is not None:
+            pdf_path.unlink(missing_ok=True)
 
 
 @router.post("/analyze/allergy-pdf")
 async def analyze_allergy_pdf(
+    request: Request,
     file: UploadFile = File(...),
     _user=Depends(upload_limit),
     settings: APISettings = Depends(get_api_settings),
 ):
-    pdf_path = await save_pdf_upload_to_temp(file, settings)
+    request_id = getattr(request.state, "request_id", "missing")
+    LOGGER.info("pdf_endpoint_enter request_id=%s report_type=allergy", request_id)
+    pdf_path = None
     try:
+        pdf_path = await save_pdf_upload_to_temp(file, settings)
+        LOGGER.info("pdf_upload_saved request_id=%s report_type=allergy", request_id)
         allergies, text = await run_in_threadpool(extract_allergies_from_pdf_file, pdf_path)
+        LOGGER.info("pdf_analysis_complete request_id=%s report_type=allergy", request_id)
         return {"allergies": allergies, "text_preview": text[:4000]}
+    except PDFParsingError as exc:
+        LOGGER.warning(
+            "pdf_analysis_rejected request_id=%s report_type=allergy error_type=%s",
+            request_id,
+            type(exc).__name__,
+        )
+        raise HTTPException(status_code=422, detail="Allergy PDF could not be parsed.") from exc
+    except HTTPException:
+        raise
     except Exception as exc:
         LOGGER.error(
-            "allergy_pdf_analysis_failed error_type=%s",
+            "allergy_pdf_analysis_failed request_id=%s error_type=%s",
+            request_id,
             type(exc).__name__,
             exc_info=SETTINGS.environment != "production",
         )
-        raise HTTPException(status_code=422, detail="Allergy PDF analysis failed.") from exc
+        raise HTTPException(status_code=500, detail="Allergy PDF analysis failed.") from exc
     finally:
-        pdf_path.unlink(missing_ok=True)
+        if pdf_path is not None:
+            pdf_path.unlink(missing_ok=True)
 
 
 @router.get("/product/lookup/{barcode}")

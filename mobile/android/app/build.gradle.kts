@@ -1,4 +1,5 @@
 import java.io.FileInputStream
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -73,7 +74,41 @@ android {
     }
 }
 
+fun decodedDartDefines(): Map<String, String> {
+    val encoded = project.findProperty("dart-defines")?.toString().orEmpty()
+    if (encoded.isBlank()) return emptyMap()
+    return encoded.split(",").mapNotNull { value ->
+        runCatching {
+            val decoded = String(Base64.getDecoder().decode(value))
+            val separator = decoded.indexOf('=')
+            if (separator <= 0) null else decoded.substring(0, separator) to decoded.substring(separator + 1)
+        }.getOrNull()
+    }.toMap()
+}
+
 gradle.taskGraph.whenReady {
+    val requestedTasks = gradle.startParameter.taskNames.joinToString(" ")
+    val buildingProd = requestedTasks.contains("Prod", ignoreCase = true)
+    val buildingDev = requestedTasks.contains("Dev", ignoreCase = true)
+    val expectedFlavor = when {
+        buildingProd -> "prod"
+        buildingDev -> "dev"
+        else -> null
+    }
+    if (expectedFlavor != null) {
+        val dartDefines = decodedDartDefines()
+        val dartFlavor = dartDefines["FLAVOR"]
+        if (dartFlavor != expectedFlavor) {
+            throw GradleException(
+                "Android flavor '$expectedFlavor' requires --dart-define=FLAVOR=$expectedFlavor " +
+                    "so Firebase App Check selects the matching provider.",
+            )
+        }
+        if (expectedFlavor == "prod" && dartDefines["BIODIETIX_APP_CHECK_ENABLED"] == "false") {
+            throw GradleException("App Check cannot be disabled for a production build.")
+        }
+    }
+
     val buildingRelease = allTasks.any { it.name.contains("Release", ignoreCase = true) }
     if (buildingRelease && !rootProject.file("key.properties").exists()) {
         throw GradleException("Release signing requires mobile/android/key.properties.")

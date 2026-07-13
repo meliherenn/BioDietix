@@ -29,6 +29,9 @@ This is a manual production checklist. Never paste private keys, service-account
 - [ ] In Firebase **App Check → Apps**, register the production Android app with the **Play Integrity** provider and supply the Play app-signing SHA-256.
 - [ ] Review provider advanced settings for the actual distribution model. Do not tighten recognition/licensing/device-integrity verdicts without device coverage tests.
 - [ ] Confirm prod flavor initializes Play Integrity and dev/debug uses only an approved debug workflow. Never ship or publish a debug token.
+- [ ] For a dev build, run `adb logcat | grep DebugAppCheckProvider`, copy the generated debug secret only into **Firebase App Check → Android app → Manage debug tokens**, then clear/share no token-bearing logs. Do not register a debug token in source code or CI variables.
+- [ ] Confirm the Android Gradle flavor and Dart `FLAVOR` match. Repository builds now fail if `--flavor prod`/`dev` and `--dart-define=FLAVOR=prod`/`dev` disagree or the Dart define is missing.
+- [ ] Do not use a sideloaded prod APK as Play Integrity evidence. Upload the signed AAB to Internal Testing and install it from the tester's Play Store account.
 - [ ] Install the signed candidate through Play Internal Testing and verify valid App Check requests for Firestore, Storage, Authentication where supported, and the BioDietix backend.
 - [ ] Confirm backend rejects missing/invalid App Check tokens in production and accepts a valid Play-issued token.
 - [ ] Monitor App Check metrics for legitimate/invalid traffic and device coverage. Enable enforcement per used Firebase product only after clean internal-test metrics and a rollback plan.
@@ -66,4 +69,3 @@ Firebase currently instructs developers to link Play Integrity to the same proje
 ## Required evidence
 
 Retain redacted screenshots/exports for fingerprints, Auth provider, linked Cloud project, App Check registration/metrics/enforcement, rule deployment and host secret names; plus candidate version/commit, device test results and negative-request logs without personal health data.
-

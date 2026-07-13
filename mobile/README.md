@@ -76,21 +76,30 @@ Geliştirme build'inde API adresi gerekirse dart define ile ezilebilir:
 flutter run \
   --flavor dev \
   --dart-define=FLAVOR=dev \
-  --dart-define=BIODIETIX_API_URL=http://10.0.2.2:8000
+  --dart-define=BIODIETIX_API_URL=http://10.0.2.2:8000 \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
 ## Kurulum ve Çalıştırma
 
 ```bash
 flutter pub get
-flutter run --flavor dev --dart-define=FLAVOR=dev
+flutter run --flavor dev \
+  --dart-define=FLAVOR=dev \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
 Debug APK:
 
 ```bash
-flutter build apk --debug --flavor dev --dart-define=FLAVOR=dev
+flutter build apk --debug --flavor dev \
+  --dart-define=FLAVOR=dev \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
+
+İlk korumalı API çağrısında `adb logcat | grep DebugAppCheckProvider` ile görülen
+debug secret'ı Firebase Console → App Check → Android app → Manage debug tokens
+alanına kaydedin. Token'ı repoya, belgeye veya build komutuna eklemeyin.
 
 Release APK:
 
@@ -126,10 +135,12 @@ build/app/outputs/flutter-apk/app-dev-debug.apk
 build/app/outputs/flutter-apk/app-prod-release.apk
 ```
 
-Bağlı cihaza kurulum:
+Prod APK Play Integrity uçtan uca testi için sideload edilmemelidir. Prod akışı
+Internal Testing'e yüklenen AAB'nin Google Play'den kurulmasıyla doğrulanır.
+Yerel cihaza dev debug APK kurmak için:
 
 ```bash
-adb install -r build/app/outputs/flutter-apk/app-prod-release.apk
+adb install -r build/app/outputs/flutter-apk/app-dev-debug.apk
 ```
 
 ## Doğrulama
@@ -140,7 +151,9 @@ Bu sürümde aşağıdaki komutlar başarıyla çalıştırıldı:
 flutter pub get
 flutter analyze
 flutter test
-flutter build apk --debug --flavor dev --dart-define=FLAVOR=dev
+flutter build apk --debug --flavor dev \
+  --dart-define=FLAVOR=dev \
+  --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
 Release görevinin `android/key.properties` yokken debug anahtarıyla devam

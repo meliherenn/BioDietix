@@ -26,7 +26,8 @@ Required production controls:
 Before a production mobile rollout, enable Play Integrity for the Android app
 in Firebase App Check. Register development debug tokens only in non-production
 Firebase projects. Verify that requests without `X-Firebase-AppCheck` receive
-`401` in production.
+`403` in production. Invalid App Check tokens also return `403`; invalid or
+expired Firebase ID tokens continue to return `401`.
 
 Production startup fails if Auth or App Check is disabled, if trusted hosts are
 missing/wildcard, or if CORS contains a wildcard.

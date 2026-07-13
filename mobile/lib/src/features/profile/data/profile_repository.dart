@@ -148,13 +148,14 @@ class ProfileRepository {
     required List<String> allergies,
     ProfileMemory? profileMemory,
   }) async {
-    final memory = profileMemory?.copyWithAllergies(allergies);
-    if (memory != null) await localStore.saveProfileMemory(uid, memory);
+    final memory = (profileMemory ?? ProfileMemory.fromJson(const {}))
+        .copyWithAllergies(allergies);
+    await localStore.saveProfileMemory(uid, memory);
 
     if (!firebaseReady) return;
     await _userDoc(uid).set({
       'allergies': allergies,
-      if (memory != null) 'profileMemory': memory.toJson(),
+      'profileMemory': memory.toJson(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }

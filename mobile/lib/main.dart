@@ -1,11 +1,13 @@
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'src/app.dart';
 import 'src/core/config/app_config.dart';
 import 'src/core/storage/hive_local_store.dart';
 import 'src/firebase_options.dart';
+import 'src/services/app_check_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,19 +28,22 @@ Future<void> main() async {
     try {
       await Firebase.initializeApp();
       firebaseReady = true;
-    } on Exception {
+    } on Exception catch (error) {
+      if (kDebugMode) {
+        debugPrint('Firebase initialization failed: ${error.runtimeType}');
+      }
       firebaseReady = false;
     }
   }
 
-  if (firebaseReady && AppConfig.appCheckEnabled) {
-    await FirebaseAppCheck.instance.activate(
-      providerAndroid: config.flavor == AppFlavor.prod
-          ? const AndroidPlayIntegrityProvider()
-          : const AndroidDebugProvider(),
-      providerApple: config.flavor == AppFlavor.prod
-          ? const AppleAppAttestWithDeviceCheckFallbackProvider()
-          : const AppleDebugProvider(),
+  await AppCheckService.instance.initialize(
+    flavor: config.flavor,
+    enabled: AppConfig.appCheckEnabled,
+    firebaseReady: firebaseReady,
+  );
+  if (kDebugMode && firebaseReady && AppConfig.appCheckEnabled) {
+    await AppCheckService.instance.runDebugDiagnostic(
+      authUserPresent: FirebaseAuth.instance.currentUser != null,
     );
   }
 
