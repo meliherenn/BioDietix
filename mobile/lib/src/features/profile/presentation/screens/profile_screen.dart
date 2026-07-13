@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/widgets/ui.dart';
 import '../../../../i18n.dart';
+import '../../../../i18n/profile_summary_localizer.dart';
 import '../../../../models/personal_info.dart';
 import '../../../../models/profile_memory.dart';
 import '../cubit/profile_cubit.dart';
@@ -240,12 +241,17 @@ class _DietCompassCard extends StatelessWidget {
     final strings = AppScope.of(context).strings;
     final memory = profileMemory;
     final labCount = extractedValues?.length ?? 0;
+    final summary = memory == null
+        ? null
+        : LocalizedProfileSummary(
+            codes: memory.displayCodes,
+            language: strings.language,
+            isComplete: memory.summaryLocalizationComplete,
+          );
     final increase = memory == null
         ? ''
-        : _foodPreview(strings, memory.foodsToIncrease);
-    final limit = memory == null
-        ? ''
-        : _foodPreview(strings, memory.foodsToLimit);
+        : _foodPreview(summary!.foodsToIncrease);
+    final limit = memory == null ? '' : _foodPreview(summary!.foodsToLimit);
     final hasSignals =
         increase.isNotEmpty ||
         limit.isNotEmpty ||
@@ -327,7 +333,7 @@ class _DietCompassCard extends StatelessWidget {
                 _CompassTile(
                   icon: Icons.favorite_rounded,
                   label: strings.t('healthProfile'),
-                  value: strings.profileText(memory.healthProfile),
+                  value: summary!.healthProfile,
                   color: aqua,
                 ),
                 const SizedBox(height: 10),
@@ -335,7 +341,7 @@ class _DietCompassCard extends StatelessWidget {
                   label: strings.t('todaysGuide'),
                   value: _compactRecommendation(
                     strings,
-                    memory.nutritionRecommendation,
+                    summary.recommendation,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -382,16 +388,12 @@ class _DietCompassCard extends StatelessWidget {
     );
   }
 
-  String _foodPreview(AppStrings strings, List<String> values) {
-    return values
-        .where((value) => value.trim().isNotEmpty)
-        .take(2)
-        .map(strings.foodText)
-        .join(', ');
+  String _foodPreview(List<String> values) {
+    return values.where((value) => value.trim().isNotEmpty).take(2).join(', ');
   }
 
   String _compactRecommendation(AppStrings strings, String value) {
-    var text = strings.foodText(value).replaceAll(RegExp(r'\s+'), ' ').trim();
+    var text = value.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (text.isEmpty) return strings.t('notAvailable');
 
     text = text

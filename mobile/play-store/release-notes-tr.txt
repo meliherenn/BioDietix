@@ -1,0 +1,5 @@
+Bu güncellemede:
+• Kan ve alerji PDF yükleme akışı daha güvenilir hale getirildi.
+• Türkçe ve İngilizce profil özetleri tamamen yerelleştirildi; dil değiştirildiğinde özet anında doğru dile dönüşür.
+• Dosya seçimi, kimlik doğrulama, App Check ve API hataları için daha anlaşılır ve güvenli hata mesajları eklendi.
+• Genel kararlılık ve güvenlik iyileştirmeleri yapıldı.

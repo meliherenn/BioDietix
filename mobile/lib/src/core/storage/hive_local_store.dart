@@ -56,7 +56,17 @@ class HiveLocalStore {
   }
 
   Future<AppLanguage> loadLanguage() async {
-    return AppLanguage.fromCode(_box.get(_globalKey('language'))?.toString());
+    return await loadSelectedLanguage() ?? AppLanguage.en;
+  }
+
+  Future<AppLanguage?> loadSelectedLanguage() async {
+    final value = _box.get(_globalKey('language'))?.toString();
+    if (value == null) return null;
+    return AppLanguage.tryFromCode(value);
+  }
+
+  Future<bool> hasSelectedLanguage() async {
+    return await loadSelectedLanguage() != null;
   }
 
   Future<void> saveLanguage(AppLanguage language) async {

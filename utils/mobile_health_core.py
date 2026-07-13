@@ -22,6 +22,10 @@ from tempfile import NamedTemporaryFile
 import pandas as pd
 
 from biodietix import extract_pdf_text
+from utils.profile_summary_catalog import (
+    build_display_codes,
+    interpretation_warning_text,
+)
 
 _PRODUCT_CACHE = {}
 _PRODUCT_CACHE_LOCK = threading.Lock()
@@ -386,31 +390,42 @@ def build_profile_memory(results, allergies=None, extracted_values=None):
         if safe_value not in (None, ""):
             lab_values[key] = safe_value
 
-    interpretation_warnings = [
-        "Reference intervals vary by laboratory, method, age, sex, pregnancy status, and clinical context."
-    ]
+    interpretation_warnings = [interpretation_warning_text("warning.reference_intervals_vary")]
     if "Glucose_mgdL" in lab_values:
         interpretation_warnings.append(
-            "The glucose threshold assumes a fasting sample; fasting status cannot be reliably inferred from every PDF."
+            interpretation_warning_text("warning.glucose_fasting_status_unknown")
         )
     if "HbA1c_Percent" in lab_values:
         interpretation_warnings.append(
-            "HbA1c can be affected by anemia, kidney or liver disease, blood disorders, pregnancy, blood loss, or transfusion."
+            interpretation_warning_text("warning.hba1c_clinical_factors")
         )
     if "eGFR_ml_min_1_73m2" in lab_values:
         interpretation_warnings.append(
-            "A single eGFR below 60 does not establish chronic kidney disease; persistence and urine markers matter."
+            interpretation_warning_text("warning.egfr_single_result_not_diagnostic")
         )
 
+    health_profile = _clean_text(row.get("Health_Profile"))
+    nutrition_recommendation = _clean_text(row.get("Nutrition_Recommendation"))
+    foods_to_increase = _list_from_csv_text(row.get("Foods_To_Increase"))
+    foods_to_limit = _list_from_csv_text(row.get("Foods_To_Limit"))
+    display_codes = build_display_codes(
+        health_profile=health_profile,
+        nutrition_recommendation=nutrition_recommendation,
+        foods_to_increase=foods_to_increase,
+        foods_to_limit=foods_to_limit,
+        interpretation_warnings=interpretation_warnings,
+    )
+
     profile_memory = {
-        "schema_version": 1,
+        "schema_version": 2,
         "updated_at": datetime.now(UTC).isoformat(),
         "personal_info": personal_info,
         "bmi": personal_info.get("BMI"),
-        "health_profile": _clean_text(row.get("Health_Profile")),
-        "nutrition_recommendation": _clean_text(row.get("Nutrition_Recommendation")),
-        "foods_to_increase": _list_from_csv_text(row.get("Foods_To_Increase")),
-        "foods_to_limit": _list_from_csv_text(row.get("Foods_To_Limit")),
+        "health_profile": health_profile,
+        "nutrition_recommendation": nutrition_recommendation,
+        "foods_to_increase": foods_to_increase,
+        "foods_to_limit": foods_to_limit,
+        "display_codes": display_codes,
         "risk_levels": risk_levels,
         "data_quality": {
             "status": json_safe_value(row.get("Data_Quality_Status")),
@@ -656,6 +671,23 @@ def _profile_contains(profile_memory, *keywords):
     return any(keyword.casefold() in profile_text for keyword in keywords)
 
 
+def _health_profile_display_codes(profile_memory):
+    display_codes = profile_memory.get("display_codes")
+    if not isinstance(display_codes, dict):
+        return None
+    values = display_codes.get("health_profiles")
+    if not isinstance(values, list):
+        return None
+    return {value for value in values if isinstance(value, str)}
+
+
+def _profile_signal(profile_memory, code, *legacy_keywords):
+    display_codes = _health_profile_display_codes(profile_memory)
+    if display_codes is not None:
+        return code in display_codes
+    return _profile_contains(profile_memory, *legacy_keywords)
+
+
 def _risk_level_contains(profile_memory, key, *keywords):
     value = _clean_text((profile_memory.get("risk_levels") or {}).get(key)).casefold()
     return any(keyword.casefold() in value for keyword in keywords)
@@ -785,14 +817,16 @@ def evaluate_product_for_profile(product, profile_memory):
         or personal_info.get("BMI")
         or personal_info.get("bmi")
     )
-    blood_sugar_sensitive = _profile_contains(
+    blood_sugar_sensitive = _profile_signal(
         profile_memory,
+        "health.blood_sugar_risk",
         "Blood Sugar",
         "Insulin Resistance",
         "Glucose",
     )
-    lipid_sensitive = _profile_contains(
+    lipid_sensitive = _profile_signal(
         profile_memory,
+        "health.cardiovascular_lipid_risk",
         "Cardiovascular Lipid",
         "Lipid",
         "Cholesterol",
@@ -803,7 +837,11 @@ def evaluate_product_for_profile(product, profile_memory):
         "elevated",
         "stage 1",
         "stage 2",
-    ) or _profile_contains(profile_memory, "Blood Pressure")
+    ) or _profile_signal(
+        profile_memory,
+        "health.blood_pressure_risk",
+        "Blood Pressure",
+    )
     kidney_sensitive = _risk_level_contains(
         profile_memory,
         "eGFR_Risk_Level",
@@ -817,19 +855,32 @@ def evaluate_product_for_profile(product, profile_memory):
     weight_sensitive = (
         bmi >= 25
         if bmi is not None
-        else _profile_contains(
-            profile_memory,
-            "Weight Management",
-            "Obesity",
-            "BMI",
+        else (
+            _profile_signal(
+                profile_memory,
+                "health.weight_management_risk",
+                "Weight Management",
+                "BMI",
+            )
+            or _profile_signal(
+                profile_memory,
+                "health.abdominal_obesity_risk",
+                "Obesity",
+            )
         )
     )
-    fiber_intake_sensitive = _profile_contains(
+    fiber_intake_sensitive = _profile_signal(
         profile_memory,
+        "health.fiber_intake_signal",
         "Fiber Intake Signal",
         "Diet Quality",  # Backward compatibility for previously stored profiles.
     )
-    thyroid_sensitive = _profile_contains(profile_memory, "Thyroid", "Metabolism")
+    thyroid_sensitive = _profile_signal(
+        profile_memory,
+        "health.thyroid_metabolism_indicator",
+        "Thyroid",
+        "Metabolism",
+    )
     risk_points = 0
 
     if measured_nutrient_count == 0:

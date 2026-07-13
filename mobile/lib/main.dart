@@ -7,6 +7,7 @@ import 'src/app.dart';
 import 'src/core/config/app_config.dart';
 import 'src/core/storage/hive_local_store.dart';
 import 'src/firebase_options.dart';
+import 'src/i18n.dart';
 import 'src/services/app_check_service.dart';
 
 Future<void> main() async {
@@ -15,7 +16,8 @@ Future<void> main() async {
   final config = AppConfig.fromEnvironment();
   final localStore = HiveLocalStore();
   await localStore.init();
-  final initialLanguage = await localStore.loadLanguage();
+  final initialLanguage =
+      await localStore.loadSelectedLanguage() ?? AppLanguage.en;
   final initialThemeMode = await localStore.loadThemeMode();
 
   var firebaseReady = false;

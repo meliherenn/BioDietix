@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Requ
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -28,12 +28,38 @@ from utils.mobile_health_core import (
     lookup_open_food_facts_product,
     normalize_allergies,
 )
+from utils.profile_summary_catalog import (
+    FOOD_TEXT_BY_CODE,
+    HEALTH_PROFILE_TEXT_BY_CODE,
+    INTERPRETATION_WARNING_TEXT_BY_CODE,
+    RECOMMENDATION_TEXT_BY_CODE,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 LOGGER = logging.getLogger("biodietix.api")
 SETTINGS = get_api_settings()
 ShortText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]
 LongText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=10_000)]
+HealthDisplayCode = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, pattern=r"^health\.[a-z0-9_]+$", max_length=100),
+]
+RecommendationDisplayCode = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        pattern=r"^recommendation\.[a-z0-9_]+$",
+        max_length=100,
+    ),
+]
+FoodDisplayCode = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, pattern=r"^food\.[a-z0-9_]+$", max_length=100),
+]
+WarningDisplayCode = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, pattern=r"^warning\.[a-z0-9_]+$", max_length=100),
+]
 
 
 app = FastAPI(
@@ -85,6 +111,50 @@ class ProductPayload(BaseModel):
     fiber_g_100g: float | None = Field(default=None, ge=0, le=100)
 
 
+class ProfileDisplayCodesPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    health_profiles: list[HealthDisplayCode] = Field(default_factory=list, max_length=100)
+    recommendations: list[RecommendationDisplayCode] = Field(
+        default_factory=list,
+        max_length=100,
+    )
+    foods_to_increase: list[FoodDisplayCode] = Field(default_factory=list, max_length=100)
+    foods_to_limit: list[FoodDisplayCode] = Field(default_factory=list, max_length=100)
+    interpretation_warnings: list[WarningDisplayCode] = Field(
+        default_factory=list,
+        max_length=100,
+    )
+
+    @field_validator("health_profiles")
+    @classmethod
+    def validate_health_profiles(cls, values):
+        return cls._validate_known(values, HEALTH_PROFILE_TEXT_BY_CODE)
+
+    @field_validator("recommendations")
+    @classmethod
+    def validate_recommendations(cls, values):
+        return cls._validate_known(values, RECOMMENDATION_TEXT_BY_CODE)
+
+    @field_validator("foods_to_increase", "foods_to_limit")
+    @classmethod
+    def validate_foods(cls, values):
+        return cls._validate_known(values, FOOD_TEXT_BY_CODE)
+
+    @field_validator("interpretation_warnings")
+    @classmethod
+    def validate_interpretation_warnings(cls, values):
+        return cls._validate_known(values, INTERPRETATION_WARNING_TEXT_BY_CODE)
+
+    @staticmethod
+    def _validate_known(values, catalog):
+        if len(values) != len(set(values)):
+            raise ValueError("Display codes must not contain duplicates.")
+        if any(value not in catalog for value in values):
+            raise ValueError("Unknown display code.")
+        return values
+
+
 class ProfileMemoryPayload(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
@@ -96,6 +166,7 @@ class ProfileMemoryPayload(BaseModel):
     nutrition_recommendation: LongText = ""
     foods_to_increase: list[ShortText] = Field(default_factory=list, max_length=100)
     foods_to_limit: list[ShortText] = Field(default_factory=list, max_length=100)
+    display_codes: ProfileDisplayCodesPayload | None = None
     risk_levels: dict[str, Any] = Field(default_factory=dict)
     data_quality: dict[str, Any] = Field(default_factory=dict)
     lab_values: dict[str, Any] = Field(default_factory=dict)
@@ -264,6 +335,7 @@ def health():
         "environment": SETTINGS.environment,
         "authentication_required": SETTINGS.auth_required,
         "app_check_required": SETTINGS.app_check_required,
+        "profile_memory_schema_version": 2,
     }
 
 

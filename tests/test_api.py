@@ -24,6 +24,7 @@ class APISecurityTests(unittest.TestCase):
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["authentication_required"])
+        self.assertEqual(response.json()["profile_memory_schema_version"], 2)
         self.assertIn("X-Request-ID", response.headers)
 
     def test_protected_endpoint_rejects_missing_token(self):
@@ -47,6 +48,47 @@ class APISecurityTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["decision"], "not_recommended")
+
+    def test_product_evaluation_accepts_schema_v2_display_codes(self):
+        app.dependency_overrides[require_user] = lambda: {"uid": "test-user"}
+        response = self.client.post(
+            "/v1/product/evaluate",
+            json={
+                "product": {"name": "Sweet snack", "sugar_g_100g": 24},
+                "profile_memory": {
+                    "schema_version": 2,
+                    "display_codes": {
+                        "health_profiles": ["health.blood_sugar_risk"],
+                        "recommendations": [],
+                        "foods_to_increase": [],
+                        "foods_to_limit": [],
+                        "interpretation_warnings": [],
+                    },
+                    "allergies": [],
+                },
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["decision"], "not_recommended")
+
+    def test_malformed_or_unknown_display_code_is_safely_rejected(self):
+        app.dependency_overrides[require_user] = lambda: {"uid": "test-user"}
+        response = self.client.post(
+            "/v1/product/evaluate",
+            json={
+                "product": {},
+                "profile_memory": {
+                    "schema_version": 2,
+                    "display_codes": {
+                        "health_profiles": ["health.not_a_real_signal"],
+                    },
+                },
+            },
+        )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertNotIn("not_a_real_signal", response.text)
 
     def test_invalid_nutrient_value_is_rejected(self):
         app.dependency_overrides[require_user] = lambda: {"uid": "test-user"}
@@ -194,6 +236,11 @@ class APISecurityTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["extracted_values"]["Age"], 30)
+        self.assertEqual(response.json()["profile_memory"]["schema_version"], 2)
+        self.assertEqual(
+            response.json()["profile_memory"]["display_codes"]["health_profiles"],
+            ["health.no_flagged_risk_available_data"],
+        )
         self.assertEqual(response.headers["X-Request-ID"], "blood-numpy-json")
 
 

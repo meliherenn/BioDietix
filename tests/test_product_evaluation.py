@@ -47,6 +47,40 @@ class ProductEvaluationDecisionTests(unittest.TestCase):
             [reason["code"] for reason in result["reasons"]],
         )
 
+    def test_schema_v2_codes_match_schema_v1_product_decision(self):
+        product = {
+            "name": "Sweet salty snack",
+            "sugar_g_100g": 24,
+            "salt_g_100g": 1.6,
+            "fiber_g_100g": 2,
+        }
+        v1_profile = {
+            "schema_version": 1,
+            "health_profile": "Blood Sugar Risk, Blood Pressure Risk, Fiber Intake Signal",
+            "allergies": [],
+        }
+        v2_profile = {
+            "schema_version": 2,
+            "health_profile": "",
+            "display_codes": {
+                "health_profiles": [
+                    "health.blood_sugar_risk",
+                    "health.blood_pressure_risk",
+                    "health.fiber_intake_signal",
+                ],
+                "recommendations": [],
+                "foods_to_increase": [],
+                "foods_to_limit": [],
+                "interpretation_warnings": [],
+            },
+            "allergies": [],
+        }
+
+        self.assertEqual(
+            evaluate_product_for_profile(product, v1_profile),
+            evaluate_product_for_profile(product, v2_profile),
+        )
+
     def test_current_bmi_overrides_stale_weight_profile_text(self):
         profile = {
             **self.profile,

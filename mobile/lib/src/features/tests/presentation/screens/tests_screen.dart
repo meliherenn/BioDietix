@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/diagnostics/safe_diagnostics.dart';
 import '../../../../core/widgets/ui.dart';
 import '../../../../i18n.dart';
+import '../../../../i18n/profile_summary_localizer.dart';
 import '../../../../models/profile_memory.dart';
 import '../../../../services/biodietix_api.dart';
 import '../../../../services/pdf_upload_source.dart';
@@ -415,8 +416,8 @@ class _ReportStatusCard extends StatelessWidget {
                     .take(6)
                     .map(
                       (entry) => _ValuePill(
-                        label: entry.key,
-                        value: entry.value.toString(),
+                        label: strings.labLabel(entry.key),
+                        value: strings.labValue(entry.key, entry.value),
                       ),
                     )
                     .toList(),
@@ -522,6 +523,13 @@ class _ProfileMemoryPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppScope.of(context).strings;
+    final summary = LocalizedProfileSummary(
+      codes: memory.displayCodes,
+      language: strings.language,
+      isComplete: memory.summaryLocalizationComplete,
+    );
+    final healthProfile = summary.healthProfile;
+    final recommendation = summary.recommendation;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
@@ -540,15 +548,15 @@ class _ProfileMemoryPreview extends StatelessWidget {
           ),
           const SizedBox(height: 9),
           Text(
-            strings.profileText(memory.healthProfile).trim().isEmpty
+            healthProfile.trim().isEmpty
                 ? strings.t('notAvailable')
-                : strings.profileText(memory.healthProfile),
+                : healthProfile,
             style: const TextStyle(fontWeight: FontWeight.w900, height: 1.35),
           ),
-          if (memory.nutritionRecommendation.trim().isNotEmpty) ...[
+          if (recommendation.trim().isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
-              strings.foodText(memory.nutritionRecommendation),
+              recommendation,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: appMutedColor(context),
                 height: 1.4,

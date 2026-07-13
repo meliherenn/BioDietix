@@ -2,20 +2,19 @@
 
 This directory is a static, responsive HTML/CSS site for the BioDietix privacy policy, external account-deletion instructions, and support contact. It has no JavaScript, analytics, advertising, tracking code, cookies, or third-party visual assets.
 
-## Required replacements
+## Published values
 
-Before publishing, replace every occurrence of:
+- Support/privacy contact: `meliheren2834@gmail.com`
+- Effective date: `2026-07-13`
+- Canonical host: `https://meliherenn.github.io/biodietix-legal/`
 
-- `SUPPORT_EMAIL` with the monitored public support/privacy email address.
-- `EFFECTIVE_DATE` with the legally approved effective date, using an unambiguous format such as `1 July 2026`.
-
-Check that no unresolved placeholder remains:
+Confirm that no release placeholder has been reintroduced:
 
 ```bash
 rg -n 'SUPPORT_EMAIL|EFFECTIVE_DATE' legal-site
 ```
 
-Do not replace the documented public URLs unless the hosting option changes. Obtain final legal review and reconcile the pages with the production backend/Firebase configuration, retention schedule, Play Data Safety form, and Health Apps declaration.
+Reconcile material policy changes with the production backend/Firebase configuration, retention schedule, Play Data Safety form, Health Apps declaration, and applicable legal obligations.
 
 ## Option A — separate `biodietix-legal` repository
 
@@ -64,23 +63,22 @@ Then open `http://127.0.0.1:8080/` and verify:
 - all navigation, privacy, deletion, and `mailto:` links;
 - English and Turkish deletion instructions;
 - mobile layout, keyboard focus, zoom, and text scaling;
-- the medical-device disclaimer and legal-review notice;
+- the medical-device disclaimer and effective/contact details;
 - no network requests other than the local page assets; and
 - the public Pages URLs after deployment.
 
 ## Final Flutter production build
 
-After Option A is live, placeholders are replaced, counsel has approved the pages, the production API host is confirmed, and release signing is configured, run from `mobile/`:
+After the public pages, production API host, and release signing are verified, run from `mobile/`:
 
 ```bash
 flutter build appbundle --release --flavor prod \
   --dart-define=FLAVOR=prod \
-  --dart-define=BIODIETIX_API_URL=https://YOUR_PRODUCTION_API_HOST \
+  --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
   --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://meliherenn.github.io/biodietix-legal/privacy-policy.html \
   --dart-define=BIODIETIX_ACCOUNT_DELETION_URL=https://meliherenn.github.io/biodietix-legal/delete-account.html \
-  --dart-define=BIODIETIX_SUPPORT_EMAIL=SUPPORT_EMAIL \
+  --dart-define=BIODIETIX_SUPPORT_EMAIL=meliheren2834@gmail.com \
   --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
-Replace `YOUR_PRODUCTION_API_HOST` and `SUPPORT_EMAIL`, increment `--build-number` for every Play upload, and never upload an AAB built with placeholders.
-
+Increment `--build-number` for every Play upload and retain the exact AAB hash.

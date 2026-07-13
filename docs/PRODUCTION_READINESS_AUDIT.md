@@ -144,11 +144,13 @@ Before release, run Emulator Suite tests for cross-user denial, unauthenticated 
 ## Release and build problems
 
 - Package/application ID: `com.biodietix.biodietix_mobile`. It is syntactically usable but must be confirmed as the permanent Play/Firebase ID before first upload; it cannot later be changed for the same listing.
-- Version is `1.0.0+1`; version code must increase on every Play upload.
+- Closed-testing update candidate is `1.0.1+20260713`; the version code must
+  remain greater than every code already uploaded to Play.
 - Gradle uses Flutter's compile/target SDK. Local merged manifests from Flutter 3.44.4 show minSdk 24 and targetSdk 36; the final signed AAB metadata must still be confirmed in Play Console.
 - Release builds intentionally fail without `mobile/android/key.properties`, preventing accidental debug signing.
 - No keystore or `key.properties` is committed. Configure Play App Signing and securely back up the upload key.
-- A production AAB cannot be completed here because release signing credentials are owner-controlled.
+- Release signing is configured outside version control and the exact candidate
+  AAB is verified in `PLAY_STORE_DELIVERY_1.0.1.md`.
 
 ## Missing or incomplete tests
 

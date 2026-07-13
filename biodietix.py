@@ -7,6 +7,11 @@ import numpy as np
 import pandas as pd
 
 from utils.food_recommendation_guide import add_food_guide_to_recommendations
+from utils.profile_summary_catalog import (
+    food_codes,
+    health_profile_codes,
+    recommendation_codes_from_items,
+)
 
 # =========================================================
 # CONFIG
@@ -704,10 +709,15 @@ def create_health_profile(row):
 
     if len(profiles) == 0:
         if row.get("Analysis_Source") == "pdf":
-            return "No Flagged Risk in Available Data"
-        return "Low Risk"
+            profile = "No Flagged Risk in Available Data"
+        else:
+            profile = "Low Risk"
+        health_profile_codes(profile)
+        return profile
 
-    return ", ".join(list(dict.fromkeys(profiles)))
+    profile = ", ".join(list(dict.fromkeys(profiles)))
+    health_profile_codes(profile)
+    return profile
 
 
 # =========================================================
@@ -961,6 +971,13 @@ def generate_recommendations(row):
     )
     increase_foods = list(dict.fromkeys(increase_foods))
     limit_foods = list(dict.fromkeys(limit_foods))
+
+    # Fail closed during development if analysis prose drifts away from the
+    # stable localization contract. Legacy prose remains the API output, while
+    # schema-v2 clients render the corresponding canonical codes.
+    recommendation_codes_from_items(recommendations)
+    food_codes(increase_foods)
+    food_codes(limit_foods)
 
     return pd.Series(
         {

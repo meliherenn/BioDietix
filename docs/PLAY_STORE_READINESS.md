@@ -1,6 +1,6 @@
 # Google Play Release Readiness
 
-Last reviewed: 2026-07-01. Recheck Play policies in Console immediately before submission; requirements change.
+Last reviewed: 2026-07-13. Recheck Play policies in Console immediately before submission; requirements change.
 
 ## Release gate
 
@@ -16,13 +16,13 @@ flutter pub get
 flutter analyze
 flutter test
 flutter build appbundle --release --flavor prod \
-  --build-name=1.0.0 \
-  --build-number=1 \
+  --build-name=1.0.1 \
+  --build-number=20260713 \
   --dart-define=FLAVOR=prod \
-  --dart-define=BIODIETIX_API_URL=https://YOUR_PRODUCTION_API_HOST \
-  --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://YOUR_PUBLIC_PRIVACY_POLICY \
-  --dart-define=BIODIETIX_ACCOUNT_DELETION_URL=https://YOUR_PUBLIC_DELETION_PAGE \
-  --dart-define=BIODIETIX_SUPPORT_EMAIL=YOUR_MONITORED_SUPPORT_EMAIL \
+  --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
+  --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://meliherenn.github.io/biodietix-legal/privacy-policy.html \
+  --dart-define=BIODIETIX_ACCOUNT_DELETION_URL=https://meliherenn.github.io/biodietix-legal/delete-account.html \
+  --dart-define=BIODIETIX_SUPPORT_EMAIL=meliheren2834@gmail.com \
   --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
@@ -36,10 +36,10 @@ Never set `BIODIETIX_APP_CHECK_ENABLED=false` for a production flavor; the app n
 
 ## Identity, version and SDK
 
-- [ ] Confirm permanent package/application ID: `com.biodietix.biodietix_mobile`.
-- [ ] Confirm the same ID in Play Console, Firebase Android app and `google-services.json`.
+- [x] Confirm permanent package/application ID: `com.biodietix.biodietix_mobile`.
+- [x] Confirm the same ID in the existing closed-testing listing, Firebase Android app and `google-services.json`.
 - [ ] Confirm app name and developer identity are consistent with the privacy/deletion pages.
-- [ ] Increment `versionCode` (`--build-number`) for every upload; use intentional semantic `versionName`.
+- [x] Candidate version is `1.0.1 (20260713)`; Play Console must still reject it if a higher code was already uploaded.
 - [x] Local merged manifests currently show `minSdk 24` and `targetSdk 36` under Flutter 3.44.4 / Android SDK 36.1.
 - [ ] Inspect the final signed AAB in Play Console/App Bundle Explorer and reconfirm target SDK API 35 or newer. Google currently states API 35+ for new apps and updates from 2025-08-31; recheck for a newer 2026 deadline. [Official target API requirements](https://support.google.com/googleplay/android-developer/answer/11926878?hl=en)
 - [ ] Record actual `compileSdk`, `targetSdk`, `minSdk`, Flutter and AGP versions from the final release artifact in release evidence.
@@ -47,10 +47,10 @@ Never set `BIODIETIX_APP_CHECK_ENABLED=false` for a production flavor; the app n
 ## Signing and upload key
 
 - [ ] Enroll in Play App Signing.
-- [ ] Generate a dedicated upload keystore; never use debug signing.
+- [x] A dedicated upload keystore is configured outside version control; the candidate certificate is verified after build.
 - [ ] Store the keystore and passwords in a password manager/secret backup with owner recovery instructions.
-- [ ] Create uncommitted `mobile/android/key.properties` with `storeFile`, `storePassword`, `keyAlias`, `keyPassword`.
-- [ ] Register release SHA-1 and SHA-256 in Firebase, then download the updated `google-services.json`.
+- [x] Uncommitted `mobile/android/key.properties` configures release signing.
+- [x] Upload-key and debug fingerprints are present in the Firebase Android client configuration; a third non-debug certificate entry is present for Play delivery.
 - [ ] Verify Google Sign-In on an Internal Testing build installed from Play, not only via local APK.
 - [ ] Retain AAB hash, mapping files, native symbols and release notes.
 

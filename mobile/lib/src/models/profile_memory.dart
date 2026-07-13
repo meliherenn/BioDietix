@@ -1,4 +1,6 @@
+import '../i18n/profile_summary_localizer.dart';
 import 'personal_info.dart';
+import 'profile_display_codes.dart';
 
 class ProfileMemory {
   const ProfileMemory({
@@ -8,6 +10,8 @@ class ProfileMemory {
     required this.foodsToIncrease,
     required this.foodsToLimit,
     required this.allergies,
+    required this.displayCodes,
+    required this.summaryLocalizationComplete,
   });
 
   final Map<String, dynamic> raw;
@@ -16,6 +20,8 @@ class ProfileMemory {
   final List<String> foodsToIncrease;
   final List<String> foodsToLimit;
   final List<String> allergies;
+  final ProfileDisplayCodes displayCodes;
+  final bool summaryLocalizationComplete;
 
   String get dataQualityStatus {
     final value = raw['data_quality'];
@@ -49,14 +55,18 @@ class ProfileMemory {
   }
 
   factory ProfileMemory.fromJson(Map<String, dynamic> json) {
+    final raw = Map<String, dynamic>.from(json);
+    final summaryResolution = ProfileSummaryCodeResolver.resolve(raw);
     return ProfileMemory(
-      raw: Map<String, dynamic>.from(json),
+      raw: raw,
       healthProfile: json['health_profile']?.toString() ?? '',
       nutritionRecommendation:
           json['nutrition_recommendation']?.toString() ?? '',
       foodsToIncrease: _stringList(json['foods_to_increase']),
       foodsToLimit: _stringList(json['foods_to_limit']),
       allergies: _stringList(json['allergies']),
+      displayCodes: summaryResolution.codes,
+      summaryLocalizationComplete: summaryResolution.isComplete,
     );
   }
 

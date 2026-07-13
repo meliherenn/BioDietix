@@ -1,0 +1,5 @@
+This update includes:
+• More reliable blood-test and allergy PDF uploads.
+• Fully localized Turkish and English profile summaries that update immediately when the app language changes.
+• Clearer, privacy-safe error handling for file selection, authentication, App Check, and API requests.
+• General stability and security improvements.

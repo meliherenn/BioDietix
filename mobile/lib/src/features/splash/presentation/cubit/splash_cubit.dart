@@ -18,24 +18,28 @@ final class SplashLoading extends SplashState {
 
 final class SplashReady extends SplashState {
   const SplashReady({
+    required this.hasSelectedLanguage,
     required this.hasSeenOnboarding,
     required this.isAuthenticated,
     required this.hasInternet,
     required this.firebaseReady,
   });
 
+  final bool hasSelectedLanguage;
   final bool hasSeenOnboarding;
   final bool isAuthenticated;
   final bool hasInternet;
   final bool firebaseReady;
 
   SplashReady copyWith({
+    bool? hasSelectedLanguage,
     bool? hasSeenOnboarding,
     bool? isAuthenticated,
     bool? hasInternet,
     bool? firebaseReady,
   }) {
     return SplashReady(
+      hasSelectedLanguage: hasSelectedLanguage ?? this.hasSelectedLanguage,
       hasSeenOnboarding: hasSeenOnboarding ?? this.hasSeenOnboarding,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       hasInternet: hasInternet ?? this.hasInternet,
@@ -45,6 +49,7 @@ final class SplashReady extends SplashState {
 
   @override
   List<Object?> get props => [
+    hasSelectedLanguage,
     hasSeenOnboarding,
     isAuthenticated,
     hasInternet,
@@ -65,23 +70,29 @@ class SplashCubit extends Cubit<SplashState> {
   SplashCubit({
     required HiveLocalStore localStore,
     required AuthRepository authRepository,
+    Future<List<ConnectivityResult>> Function()? connectivityChecker,
   }) : _localStore = localStore,
        _authRepository = authRepository,
+       _connectivityChecker =
+           connectivityChecker ?? Connectivity().checkConnectivity,
        super(const SplashLoading());
 
   final HiveLocalStore _localStore;
   final AuthRepository _authRepository;
+  final Future<List<ConnectivityResult>> Function() _connectivityChecker;
 
   Future<void> check() async {
     emit(const SplashLoading());
     try {
+      final hasSelectedLanguage = await _localStore.hasSelectedLanguage();
       final hasSeenOnboarding = await _localStore.hasSeenOnboarding();
-      final connectivity = await Connectivity().checkConnectivity();
+      final connectivity = await _connectivityChecker();
       final hasInternet = connectivity.any(
         (result) => result != ConnectivityResult.none,
       );
       emit(
         SplashReady(
+          hasSelectedLanguage: hasSelectedLanguage,
           hasSeenOnboarding: hasSeenOnboarding,
           isAuthenticated: _authRepository.currentUser != null,
           hasInternet: hasInternet,
@@ -90,6 +101,13 @@ class SplashCubit extends Cubit<SplashState> {
       );
     } on Exception catch (error) {
       emit(SplashFailure(error.toString()));
+    }
+  }
+
+  void completeLanguageSelection() {
+    final current = state;
+    if (current is SplashReady) {
+      emit(current.copyWith(hasSelectedLanguage: true));
     }
   }
 

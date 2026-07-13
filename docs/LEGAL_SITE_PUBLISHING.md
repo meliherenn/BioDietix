@@ -2,15 +2,19 @@
 
 The publishable static site is in [`legal-site/`](../legal-site/). It includes the landing page, privacy policy, bilingual account-deletion instructions, and shared CSS. It intentionally contains no JavaScript, analytics, trackers, cookies, or external visual assets.
 
-## Mandatory gate
+## Published configuration
 
-Before publishing or referencing the pages from Google Play:
+The production pages use these release values:
 
-1. Replace every `SUPPORT_EMAIL` and `EFFECTIVE_DATE` occurrence.
-2. Confirm Melih Eren is the correct public developer/controller identity or update it with counsel.
-3. Obtain final KVKK/GDPR legal review.
-4. Reconcile retention, Firebase/backend providers, Data Safety, Health Apps declarations, and the actual production data flow.
-5. Test the external deletion request from a signed-out browser through completion with a synthetic account.
+- Developer/controller: `Melih Eren`
+- Support/privacy contact: `meliheren2834@gmail.com`
+- Effective date: `2026-07-13`
+- Canonical host: `https://meliherenn.github.io/biodietix-legal/`
+
+Before each Play release, confirm these values are still correct, reconcile
+retention/Firebase/backend behavior with the Data Safety and Health Apps
+declarations, and test account deletion from a signed-out browser using a
+synthetic account.
 
 ## Recommended GitHub Pages deployment
 
@@ -25,18 +29,22 @@ The alternative is a `gh-pages` branch or GitHub Pages Actions deployment from t
 
 ## Build-time configuration
 
-After the recommended URLs are live and the support address is real, build from `mobile/`:
+Build the closed-testing update from `mobile/`:
 
 ```bash
 flutter build appbundle --release --flavor prod \
+  --build-name=1.0.1 \
+  --build-number=20260713 \
   --dart-define=FLAVOR=prod \
-  --dart-define=BIODIETIX_API_URL=https://YOUR_PRODUCTION_API_HOST \
+  --dart-define=BIODIETIX_API_URL=https://biodietix-ml.onrender.com \
   --dart-define=BIODIETIX_PRIVACY_POLICY_URL=https://meliherenn.github.io/biodietix-legal/privacy-policy.html \
   --dart-define=BIODIETIX_ACCOUNT_DELETION_URL=https://meliherenn.github.io/biodietix-legal/delete-account.html \
-  --dart-define=BIODIETIX_SUPPORT_EMAIL=SUPPORT_EMAIL \
+  --dart-define=BIODIETIX_SUPPORT_EMAIL=meliheren2834@gmail.com \
   --dart-define=BIODIETIX_APP_CHECK_ENABLED=true
 ```
 
-Do not upload this build until `YOUR_PRODUCTION_API_HOST` and `SUPPORT_EMAIL` are replaced, the version code is incremented, signing/Firebase/Play Integrity are verified, and all expert/manual release gates in [`PLAY_STORE_BLOCKERS_CLOSURE_PLAN.md`](PLAY_STORE_BLOCKERS_CLOSURE_PLAN.md) are closed.
+Use a version code greater than the highest code already uploaded in Play
+Console if `20260713` has previously been used. The signed artifact and its
+verification evidence are recorded in `PLAY_STORE_DELIVERY_1.0.1.md`.
 
 See [`legal-site/README.md`](../legal-site/README.md) for both deployment options and the complete verification checklist.

@@ -9,7 +9,15 @@ enum AppLanguage {
   final String code;
 
   static AppLanguage fromCode(String? code) {
-    return code == AppLanguage.tr.code ? AppLanguage.tr : AppLanguage.en;
+    return tryFromCode(code) ?? AppLanguage.en;
+  }
+
+  static AppLanguage? tryFromCode(String? code) {
+    return switch (code) {
+      'en' => AppLanguage.en,
+      'tr' => AppLanguage.tr,
+      _ => null,
+    };
   }
 }
 
@@ -18,14 +26,38 @@ class AppStrings {
 
   final AppLanguage language;
 
-  bool get isTr => language == AppLanguage.tr;
-
   String t(String key) {
     return _values[language]?[key] ?? _values[AppLanguage.en]?[key] ?? key;
   }
 
   String allergy(String id) {
     return _allergies[language]?[id] ?? _allergies[AppLanguage.en]?[id] ?? id;
+  }
+
+  String labLabel(String key) {
+    return _labLabels[language]?[key] ??
+        _labLabels[AppLanguage.en]?[key] ??
+        key.replaceAll('_', ' ');
+  }
+
+  String labValue(String key, Object? value) {
+    final text = value?.toString() ?? '';
+    if (key == 'Observed_Lab_Domains') {
+      return text
+          .split(',')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .map(
+            (item) =>
+                _labValues[language]?[item] ??
+                _labValues[AppLanguage.en]?[item] ??
+                item,
+          )
+          .join(', ');
+    }
+    return _labValues[language]?[text] ??
+        _labValues[AppLanguage.en]?[text] ??
+        text;
   }
 
   String decision(String value) {
@@ -59,9 +91,15 @@ class AppStrings {
   String reason(Map<String, dynamic> reason) {
     final code = reason['code']?.toString() ?? '';
     final value = reason['value'] == null ? '' : ' (${reason['value']})';
+    final allergens =
+        (reason['allergens'] as List?)
+            ?.map((item) => allergy(item.toString()))
+            .join(', ') ??
+        '';
     return switch (code) {
-      'allergy_conflict' =>
-        '${t('reasonAllergyConflict')}: ${(reason['allergens'] as List?)?.join(', ') ?? ''}',
+      'allergy_conflict' => '${t('reasonAllergyConflict')}: $allergens',
+      'possible_allergy_conflict' =>
+        '${t('reasonPossibleAllergyConflict')}: $allergens',
       'nutrition_data_missing' => t('reasonNutritionMissing'),
       'very_high_sugar_product' => '${t('reasonVeryHighSugarProduct')}$value',
       'high_sugar_product' => '${t('reasonHighSugarProduct')}$value',
@@ -113,24 +151,6 @@ class AppStrings {
       _ => t('altWholeFood'),
     };
   }
-
-  String profileText(String value) {
-    if (!isTr || value.trim().isEmpty) return value;
-    var result = value;
-    for (final entry in _profileReplacements.entries) {
-      result = result.replaceAll(entry.key, entry.value);
-    }
-    return result;
-  }
-
-  String foodText(String value) {
-    if (!isTr || value.trim().isEmpty) return value;
-    var result = value;
-    for (final entry in _foodReplacements.entries) {
-      result = result.replaceAll(entry.key, entry.value);
-    }
-    return result;
-  }
 }
 
 class AppScope extends InheritedWidget {
@@ -166,6 +186,14 @@ const _values = {
     'splashSession': 'Session',
     'splashHive': 'Local Hive',
     'splashReady': 'Ready',
+    'languageSelectionBrand': 'BIODIETIX',
+    'languageSelectionTitle': 'Choose your language',
+    'languageSelectionBody':
+        'Select the language you want to use. You can change it later in Settings.',
+    'languageTurkishNative': 'Türkçe',
+    'languageTurkishSubtitle': 'Uygulamayı Türkçe kullan',
+    'languageEnglishNative': 'English',
+    'languageEnglishSubtitle': 'Use the app in English',
     'onboardLabsTitle': 'Build a balanced plate that fits you',
     'onboardLabsBody':
         'Add body details, allergies, and optional reports to shape a profile cached on this device and synced to your account.',
@@ -476,6 +504,7 @@ const _values = {
     'dataQualityMissingNotice':
         'Nutrition values are missing. Add label values for a more confident result.',
     'reasonAllergyConflict': 'Allergy conflict',
+    'reasonPossibleAllergyConflict': 'Possible allergy conflict',
     'reasonNutritionMissing':
         'Nutrition data is missing, so this product should be evaluated cautiously',
     'reasonVeryHighSugarProduct': 'Very high sugar for a packaged food',
@@ -562,6 +591,14 @@ const _values = {
     'splashSession': 'Oturum',
     'splashHive': 'Yerel Hive',
     'splashReady': 'Hazır',
+    'languageSelectionBrand': 'BIODIETIX',
+    'languageSelectionTitle': 'Dilini seç',
+    'languageSelectionBody':
+        'Kullanmak istediğin dili seç. Daha sonra Ayarlar’dan değiştirebilirsin.',
+    'languageTurkishNative': 'Türkçe',
+    'languageTurkishSubtitle': 'Uygulamayı Türkçe kullan',
+    'languageEnglishNative': 'English',
+    'languageEnglishSubtitle': 'Use the app in English',
     'onboardLabsTitle': 'Sana uyan dengeli tabağı kur',
     'onboardLabsBody':
         'Vücut bilgilerini, alerjilerini ve istersen raporlarını ekle; cihazda önbelleğe alınan ve hesabınla eşitlenen profilini oluştur.',
@@ -872,6 +909,7 @@ const _values = {
     'dataQualityMissingNotice':
         'Besin değerleri eksik. Daha güvenli sonuç için etiket değerlerini ekle.',
     'reasonAllergyConflict': 'Alerji uyumsuzluğu',
+    'reasonPossibleAllergyConflict': 'Olası alerji uyumsuzluğu',
     'reasonNutritionMissing':
         'Besin değeri eksik olduğu için ürün dikkatli değerlendirilmeli',
     'reasonVeryHighSugarProduct': 'Paketli ürün için çok yüksek şeker',
@@ -976,65 +1014,122 @@ const _allergies = {
   },
 };
 
-const _profileReplacements = {
-  'Low Risk': 'Düşük Risk',
-  'Insufficient Data': 'Yetersiz Veri',
-  'No Flagged Risk in Available Data': 'Mevcut Veride İşaretlenen Risk Yok',
-  'Cardiovascular Lipid Risk': 'Kardiyovasküler Lipit Riski',
-  'Kidney / Muscle Marker': 'Böbrek / Kas Göstergesi',
-  'Kidney / Muscle Indicator': 'Böbrek / Kas Göstergesi',
-  'Thyroid / Metabolism Indicator': 'Tiroid / Metabolizma Göstergesi',
-  'Blood Sugar / Insulin Resistance Risk': 'Kan Şekeri / İnsülin Direnci Riski',
-  'Inflammation / Immune Indicator': 'Enflamasyon / Bağışıklık Göstergesi',
-  'Weight Management Focus': 'Kilo Yönetimi Odağı',
-  'Blood Pressure / Kidney Risk': 'Tansiyon / Böbrek Riski',
-  'Fiber Intake Signal': 'Lif Alımı Sinyali',
+const _labLabels = {
+  AppLanguage.en: {
+    'Gender': 'Gender',
+    'Age': 'Age',
+    'Report_Date': 'Report date',
+    'Birth_Date': 'Birth date',
+    'Weight_kg': 'Weight (kg)',
+    'Height_cm': 'Height (cm)',
+    'BMI': 'BMI',
+    'TSH_mIU_L': 'TSH (mIU/L)',
+    'Hemoglobin_gdL': 'Hemoglobin (g/dL)',
+    'Hematocrit_Percent': 'Hematocrit (%)',
+    'Red_Blood_Cells_count': 'Red blood cells (RBC)',
+    'White_Blood_Cells_count': 'White blood cells (WBC)',
+    'Platelet_count': 'Platelets',
+    'Glucose_mgdL': 'Glucose (mg/dL)',
+    'HbA1c_Percent': 'HbA1c (%)',
+    'Cholesterol_Total_mgdL': 'Total cholesterol (mg/dL)',
+    'Cholesterol_LDL_mgdL': 'LDL cholesterol (mg/dL)',
+    'Cholesterol_HDL_mgdL': 'HDL cholesterol (mg/dL)',
+    'Triglycerides_mgdL': 'Triglycerides (mg/dL)',
+    'Kidney_Creatinine_mgdL': 'Creatinine (mg/dL)',
+    'eGFR_ml_min_1_73m2': 'eGFR (mL/min/1.73 m²)',
+    'Liver_ALT_UL': 'ALT (U/L)',
+    'Liver_AST_UL': 'AST (U/L)',
+    'CRP_mg_L': 'CRP (mg/L)',
+    'Ferritin_ng_mL': 'Ferritin (ng/mL)',
+    'Folate_ng_mL': 'Folate (ng/mL)',
+    'Calcium_mg_dL': 'Calcium (mg/dL)',
+    'Magnesium_mg_dL': 'Magnesium (mg/dL)',
+    'Urea_mgdL': 'Urea (mg/dL)',
+    'Vitamin_B12_pg_mL': 'Vitamin B12 (pg/mL)',
+    'VitaminD_ng_mL': 'Vitamin D (ng/mL)',
+    'Iron_ugdL': 'Iron (µg/dL)',
+    'Iron_Binding_Capacity_ugdL': 'Iron-binding capacity (µg/dL)',
+    'Sedimentation_mm_h': 'Sedimentation (mm/h)',
+    'Free_T3_pg_mL': 'Free T3 (pg/mL)',
+    'Free_T4_ng_dL': 'Free T4 (ng/dL)',
+    'Observed_Lab_Count': 'Detected lab values',
+    'Observed_Lab_Domains': 'Detected lab groups',
+    'Data_Quality_Status': 'Report data quality',
+  },
+  AppLanguage.tr: {
+    'Gender': 'Cinsiyet',
+    'Age': 'Yaş',
+    'Report_Date': 'Rapor tarihi',
+    'Birth_Date': 'Doğum tarihi',
+    'Weight_kg': 'Kilo (kg)',
+    'Height_cm': 'Boy (cm)',
+    'BMI': 'Vücut kitle indeksi',
+    'TSH_mIU_L': 'TSH (mIU/L)',
+    'Hemoglobin_gdL': 'Hemoglobin (g/dL)',
+    'Hematocrit_Percent': 'Hematokrit (%)',
+    'Red_Blood_Cells_count': 'Alyuvar (RBC)',
+    'White_Blood_Cells_count': 'Akyuvar (WBC)',
+    'Platelet_count': 'Trombosit',
+    'Glucose_mgdL': 'Glukoz (mg/dL)',
+    'HbA1c_Percent': 'HbA1c (%)',
+    'Cholesterol_Total_mgdL': 'Toplam kolesterol (mg/dL)',
+    'Cholesterol_LDL_mgdL': 'LDL kolesterol (mg/dL)',
+    'Cholesterol_HDL_mgdL': 'HDL kolesterol (mg/dL)',
+    'Triglycerides_mgdL': 'Trigliserit (mg/dL)',
+    'Kidney_Creatinine_mgdL': 'Kreatinin (mg/dL)',
+    'eGFR_ml_min_1_73m2': 'eGFR (mL/dk/1,73 m²)',
+    'Liver_ALT_UL': 'ALT (U/L)',
+    'Liver_AST_UL': 'AST (U/L)',
+    'CRP_mg_L': 'CRP (mg/L)',
+    'Ferritin_ng_mL': 'Ferritin (ng/mL)',
+    'Folate_ng_mL': 'Folat (ng/mL)',
+    'Calcium_mg_dL': 'Kalsiyum (mg/dL)',
+    'Magnesium_mg_dL': 'Magnezyum (mg/dL)',
+    'Urea_mgdL': 'Üre (mg/dL)',
+    'Vitamin_B12_pg_mL': 'B12 vitamini (pg/mL)',
+    'VitaminD_ng_mL': 'D vitamini (ng/mL)',
+    'Iron_ugdL': 'Demir (µg/dL)',
+    'Iron_Binding_Capacity_ugdL': 'Demir bağlama kapasitesi (µg/dL)',
+    'Sedimentation_mm_h': 'Sedimentasyon (mm/sa)',
+    'Free_T3_pg_mL': 'Serbest T3 (pg/mL)',
+    'Free_T4_ng_dL': 'Serbest T4 (ng/dL)',
+    'Observed_Lab_Count': 'Saptanan laboratuvar değeri sayısı',
+    'Observed_Lab_Domains': 'Saptanan laboratuvar grupları',
+    'Data_Quality_Status': 'Rapor veri kalitesi',
+  },
 };
 
-const _foodReplacements = {
-  'For this age group, build long-term habits with regular meals, adequate protein, fiber, and physical activity.':
-      'Bu yaş grubu için düzenli öğünler, yeterli protein, lif ve fiziksel aktiviteyle uzun vadeli alışkanlıklar oluştur.',
-  'Thyroid-related lab changes should be reviewed with a healthcare professional; this is not a medical diagnosis.':
-      'Tiroidle ilişkili laboratuvar değişiklikleri bir sağlık profesyoneliyle değerlendirilmelidir; bu tıbbi teşhis değildir.',
-  'Support thyroid-related metabolism with':
-      'Tiroidle ilişkili metabolizmayı desteklemek için',
-  'regular meal patterns': 'düzenli öğün düzeni',
-  'adequate protein': 'yeterli protein',
-  'physical activity': 'fiziksel aktivite',
-  'selenium-rich foods': 'selenyumdan zengin besinler',
-  'very low-calorie diets': 'çok düşük kalorili diyetler',
-  'ultra-processed foods': 'aşırı işlenmiş gıdalar',
-  'excess sugar': 'fazla şeker',
-  'balanced meals': 'dengeli öğünler',
-  'lean protein': 'yağsız protein',
-  'whole grains': 'tam tahıllar',
-  'vegetables': 'sebzeler',
-  'fruits': 'meyveler',
-  'eggs': 'yumurta',
-  'egg': 'yumurta',
-  'yogurt': 'yoğurt',
-  'dairy products': 'süt ürünleri',
-  'selenium': 'selenyum',
-  'zinc': 'çinko',
-  'iodine': 'iyot',
-  'protein': 'protein',
-  'frequent fast food': 'sık fast food tüketimi',
-  'sugary drinks': 'şekerli içecekler',
-  'meal skipping': 'öğün atlama',
-  'olive oil': 'zeytinyağı',
-  'nuts': 'kuruyemişler',
-  'fish': 'balık',
-  'avocado': 'avokado',
-  'fiber-rich foods': 'lifli besinler',
-  'fiber': 'lif',
-  'fresh vegetables': 'taze sebzeler',
-  'water': 'su',
-  'processed meats': 'işlenmiş etler',
-  'fried foods': 'kızartmalar',
-  'trans fats': 'trans yağlar',
-  'sugary foods': 'şekerli gıdalar',
-  'high-sodium foods': 'yüksek sodyumlu gıdalar',
-  'refined grains': 'rafine tahıllar',
-  'margarine': 'margarin',
-  'fatty red meat': 'yağlı kırmızı et',
+const _labValues = {
+  AppLanguage.en: {
+    'Female': 'Female',
+    'Male': 'Male',
+    'insufficient': 'Insufficient',
+    'limited': 'Limited',
+    'sufficient_for_screening': 'Sufficient for screening',
+    'sufficient_for_broad_assessment': 'Sufficient for broad assessment',
+    'glycemic': 'Blood sugar',
+    'lipids': 'Blood lipids',
+    'kidney': 'Kidney',
+    'liver': 'Liver',
+    'blood_count': 'Blood count',
+    'inflammation': 'Inflammation',
+    'micronutrients': 'Micronutrients',
+    'thyroid': 'Thyroid',
+  },
+  AppLanguage.tr: {
+    'Female': 'Kadın',
+    'Male': 'Erkek',
+    'insufficient': 'Yetersiz',
+    'limited': 'Sınırlı',
+    'sufficient_for_screening': 'Tarama için yeterli',
+    'sufficient_for_broad_assessment': 'Geniş değerlendirme için yeterli',
+    'glycemic': 'Kan şekeri',
+    'lipids': 'Kan yağları',
+    'kidney': 'Böbrek',
+    'liver': 'Karaciğer',
+    'blood_count': 'Kan sayımı',
+    'inflammation': 'Enflamasyon',
+    'micronutrients': 'Mikro besinler',
+    'thyroid': 'Tiroid',
+  },
 };

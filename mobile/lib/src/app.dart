@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/config/app_config.dart';
@@ -13,6 +14,7 @@ import 'features/product_checks/data/product_check_repository.dart';
 import 'features/profile/data/profile_repository.dart';
 import 'features/settings/presentation/cubit/locale_cubit.dart';
 import 'features/settings/presentation/cubit/theme_cubit.dart';
+import 'features/settings/presentation/screens/language_selection_screen.dart';
 import 'features/splash/presentation/cubit/splash_cubit.dart';
 import 'features/splash/presentation/screens/splash_screen.dart';
 import 'i18n.dart';
@@ -94,13 +96,16 @@ class BioDietixApp extends StatelessWidget {
                     title: strings.t('appTitle'),
                     debugShowCheckedModeBanner: false,
                     locale: Locale(localeState.language.code),
+                    supportedLocales: const [Locale('en'), Locale('tr')],
+                    localizationsDelegates: const [
+                      GlobalMaterialLocalizations.delegate,
+                      GlobalWidgetsLocalizations.delegate,
+                      GlobalCupertinoLocalizations.delegate,
+                    ],
                     themeMode: themeState.mode,
                     theme: _theme(Brightness.light),
                     darkTheme: _theme(Brightness.dark),
-                    home: _AppFlow(
-                      config: config,
-                      firebaseReady: firebaseReady,
-                    ),
+                    home: AppFlow(config: config, firebaseReady: firebaseReady),
                   );
                 },
               ),
@@ -272,8 +277,8 @@ class BioDietixApp extends StatelessWidget {
   }
 }
 
-class _AppFlow extends StatelessWidget {
-  const _AppFlow({required this.config, required this.firebaseReady});
+class AppFlow extends StatelessWidget {
+  const AppFlow({required this.config, required this.firebaseReady, super.key});
 
   final AppConfig config;
   final bool firebaseReady;
@@ -288,6 +293,17 @@ class _AppFlow extends StatelessWidget {
 
         if (splashState is SplashFailure) {
           return Scaffold(body: Center(child: Text(splashState.message)));
+        }
+
+        if (splashState is SplashReady && !splashState.hasSelectedLanguage) {
+          return LanguageSelectionScreen(
+            onSelected: (language) async {
+              await context.read<LocaleCubit>().setLanguage(language);
+              if (context.mounted) {
+                context.read<SplashCubit>().completeLanguageSelection();
+              }
+            },
+          );
         }
 
         if (splashState is SplashReady && !splashState.hasSeenOnboarding) {
